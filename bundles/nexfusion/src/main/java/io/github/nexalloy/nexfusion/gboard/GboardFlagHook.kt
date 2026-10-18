@@ -1,5 +1,6 @@
 package io.github.nexalloy.nexfusion.gboard
 
+import android.util.Log
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
@@ -27,8 +28,14 @@ class FlagOverride private constructor(
         /** Replaces any non-null boolean (upstream checks only the type). */
         fun forceBoolean(): FlagOverride = FlagOverride({ it is Boolean }, true)
 
+        /** Forces a boolean true, replacing null, false, or true. */
+        fun forceTrue(): FlagOverride = FlagOverride({ it == null || it is Boolean }, true)
+
         /** Replaces any boxed long, like the count and character-limit policies. */
         fun forceLong(value: Long): FlagOverride = FlagOverride({ it is Long }, value)
+
+        /** Replaces any floating-point double, like candidate threshold policies. */
+        fun forceDouble(value: Double): FlagOverride = FlagOverride({ it is Double || it is Float }, value)
 
         /** Replaces any string, like the "all languages" allowlist policies. */
         fun forceString(value: String): FlagOverride = FlagOverride({ it is String }, value)
@@ -37,33 +44,59 @@ class FlagOverride private constructor(
 
 /**
  * Known obfuscated class names that implement the Phenotype flag interface across Gboard releases.
- * `actb` is the plain flag and `actq` carries the metadata on Gboard 18.4.1.
+ * `actb`, `actq`, and `actf` are the plain flag, metadata, and flag interface on Gboard 18.4.1.
  */
 private val KNOWN_FLAG_CLASS_NAMES = listOf(
-    "actb", "actq", // Gboard 18.4.1 beta
+    "actb", "actq", "acug", "acul",         // Gboard 18.4.1 beta
+    "odx", "ody",                           // Gboard 18.4.1 release
     "acps", "obw", "ntk", "nuw", "lhf", "lhg", "kgj", "acta", "actc", "jzp", "jzq"
 )
 
 private val overrides = LinkedHashMap<String, FlagOverride>()
 private val nameFields = ConcurrentHashMap<Class<*>, Field>()
+private val nameMethods = ConcurrentHashMap<Class<*>, java.lang.reflect.Method>()
+private val dynamicBooleanPrefOverrides = ConcurrentHashMap<String, Boolean>()
+private val dynamicStringPrefOverrides = ConcurrentHashMap<String, String>()
 private var installed = false
-private var roundedKeysPrefHooked = false
+private var prefsHooked = false
 
-/**
- * Ensures Gboard's rounded keys preference is permanently enabled in both SharedPreferences
- * storage and runtime lookups.
- */
-fun PatchExecutor.enableGboardRoundedKeysPreference() {
-    runCatching {
-        val prefs = appContext.getSharedPreferences(
-            "com.google.android.inputmethod.latin_preferences",
-            android.content.Context.MODE_PRIVATE
-        )
-        prefs.edit().putBoolean("enable_rounded_keys", true).apply()
+fun PatchExecutor.enableGboardPreferences(
+    booleans: Map<String, Boolean> = emptyMap(),
+    strings: Map<String, String> = emptyMap()
+) {
+    dynamicBooleanPrefOverrides.putAll(booleans)
+    dynamicStringPrefOverrides.putAll(strings)
+
+    fun seed(ctx: android.content.Context) {
+        runCatching {
+            val latinPrefs = ctx.getSharedPreferences(
+                "${ctx.packageName}_preferences",
+                android.content.Context.MODE_PRIVATE
+            )
+            val editor = latinPrefs.edit()
+            booleans.forEach { (k, v) -> editor.putBoolean(k, v) }
+            strings.forEach { (k, v) -> editor.putString(k, v) }
+            editor.apply()
+        }
+        runCatching {
+            val defaultPrefs = android.preference.PreferenceManager.getDefaultSharedPreferences(ctx)
+            val editor = defaultPrefs.edit()
+            booleans.forEach { (k, v) -> editor.putBoolean(k, v) }
+            strings.forEach { (k, v) -> editor.putString(k, v) }
+            editor.apply()
+        }
     }
 
-    if (!roundedKeysPrefHooked) {
-        roundedKeysPrefHooked = true
+    seed(appContext)
+    if (android.os.Build.VERSION.SDK_INT >= 24) {
+        runCatching {
+            val dps = appContext.createDeviceProtectedStorageContext()
+            if (dps != null) seed(dps)
+        }
+    }
+
+    if (!prefsHooked) {
+        prefsHooked = true
         runCatching {
             val sharedPrefsImpl = runCatching { classLoader.loadClass("android.app.SharedPreferencesImpl") }.getOrNull()
                 ?: Class.forName("android.app.SharedPreferencesImpl")
@@ -74,15 +107,56 @@ fun PatchExecutor.enableGboardRoundedKeysPreference() {
                 Boolean::class.javaPrimitiveType,
                 object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
-                        val key = param.args[0] as? String
-                        if (key == "enable_rounded_keys") {
-                            param.result = true
-                        }
+                        val key = param.args[0] as? String ?: return
+                        val override = dynamicBooleanPrefOverrides[key] ?: return
+                        param.result = override
+                    }
+                }
+            )
+            XposedHelpers.findAndHookMethod(
+                sharedPrefsImpl,
+                "getString",
+                String::class.java,
+                String::class.java,
+                object : XC_MethodHook() {
+                    override fun beforeHookedMethod(param: MethodHookParam) {
+                        val key = param.args[0] as? String ?: return
+                        val override = dynamicStringPrefOverrides[key] ?: return
+                        param.result = override
                     }
                 }
             )
         }
     }
+}
+
+/**
+ * Ensures Gboard's rounded keys (Belka UI) preference is enabled in SharedPreferences storage
+ * and runtime lookups.
+ */
+fun PatchExecutor.enableGboardRoundedKeysPreference() {
+    enableGboardPreferences(
+        booleans = mapOf("enable_rounded_keys" to true)
+    )
+}
+
+/**
+ * Ensures Gboard's AI Writing Tools and Jarvis consent preferences are enabled in SharedPreferences
+ * storage and runtime lookups.
+ */
+fun PatchExecutor.enableGboardWritingToolsPreference() {
+    enableGboardPreferences(
+        booleans = mapOf(
+            "pref_key_writing_tools_opt_in" to true,
+            "pref_key_writing_tools_screen_context_opt_in" to true,
+            "pref_key_writing_tools_screen_context_opt_in_v1" to true,
+            "pref_key_writing_tools_enable_pi_override" to true,
+            "show_suggestion_strip" to true,
+        ),
+        strings = mapOf(
+            "jarvis_consent_history" to "Granted (Form)"
+        )
+    )
 }
 
 /**
@@ -98,20 +172,30 @@ fun PatchExecutor.gboardFlagOverrides(vararg entries: Pair<String, FlagOverride>
     val hook = object : XC_MethodHook() {
         override fun afterHookedMethod(param: MethodHookParam) {
             val receiver = param.thisObject ?: return
-            val override = synchronized(overrides) { overrides[flagName(receiver)] } ?: return
-            param.result = override.applyTo(param.result)
+            val name = flagName(receiver) ?: return
+            val override = synchronized(overrides) { overrides[name] } ?: return
+            val oldVal = param.result
+            val newVal = override.applyTo(oldVal)
+            param.result = newVal
+            if (oldVal != newVal) {
+                Log.i("NexAlloy", "NexFusion: Gboard flag '$name': $oldVal -> $newVal")
+            }
         }
     }
 
     var hooked = 0
     for (className in KNOWN_FLAG_CLASS_NAMES) {
         val flagClass = runCatching { classLoader.loadClass(className) }.getOrNull() ?: continue
+        if (flagClass.isInterface || java.lang.reflect.Modifier.isAbstract(flagClass.modifiers)) continue
         val hasGetter = flagClass.declaredMethods.any {
-            it.name == "g" && it.parameterTypes.isEmpty() && it.returnType == Any::class.java
+            it.name == "g" && it.parameterTypes.isEmpty() && it.returnType == Any::class.java &&
+                !java.lang.reflect.Modifier.isAbstract(it.modifiers)
         }
         if (!hasGetter) continue
-        XposedBridge.hookAllMethods(flagClass, "g", hook)
-        hooked++
+        runCatching {
+            XposedBridge.hookAllMethods(flagClass, "g", hook)
+            hooked++
+        }
     }
 
     if (hooked == 0) {
@@ -122,15 +206,36 @@ fun PatchExecutor.gboardFlagOverrides(vararg entries: Pair<String, FlagOverride>
     }
 }
 
-/** The flag's name, read from the name field of its class; null when the receiver is unexpected. */
+/** The flag's name, read from method h() or the name field of its class; null when the receiver is unexpected. */
 private fun flagName(receiver: Any): String? {
     val receiverClass = receiver.javaClass
+
+    // 1. Check for public method h() returning String (present in Gboard 18.4.1 actb, actq, etc.)
+    val method = nameMethods[receiverClass] ?: run {
+        val m = runCatching { receiverClass.getMethod("h") }.getOrNull()
+            ?: runCatching {
+                receiverClass.declaredMethods.firstOrNull {
+                    it.parameterTypes.isEmpty() && it.returnType == String::class.java
+                }?.apply { isAccessible = true }
+            }.getOrNull()
+        if (m != null) nameMethods.putIfAbsent(receiverClass, m) ?: m else null
+    }
+    if (method != null) {
+        val name = runCatching { method.invoke(receiver) as? String }.getOrNull()
+        if (!name.isNullOrEmpty()) return name
+    }
+
+    // 2. Fall back to field 'a' or first String field
     val field = nameFields[receiverClass] ?: run {
-        val resolved = runCatching {
-            receiverClass.getDeclaredField("a").apply { isAccessible = true }
-        }.getOrNull() ?: runCatching {
-            receiverClass.declaredFields.firstOrNull { it.type == String::class.java }?.apply { isAccessible = true }
-        }.getOrNull() ?: return null
+        var resolved: Field? = null
+        var c: Class<*>? = receiverClass
+        while (c != null && c != Any::class.java) {
+            resolved = runCatching { c.getDeclaredField("a").apply { isAccessible = true } }.getOrNull()
+                ?: runCatching { c.declaredFields.firstOrNull { it.type == String::class.java }?.apply { isAccessible = true } }.getOrNull()
+            if (resolved != null) break
+            c = c.superclass
+        }
+        if (resolved == null) return null
         nameFields.putIfAbsent(receiverClass, resolved) ?: resolved
     }
     return runCatching { field.get(receiver) as? String }.getOrNull()

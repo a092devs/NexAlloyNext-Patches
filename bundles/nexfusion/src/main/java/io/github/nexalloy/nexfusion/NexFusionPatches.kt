@@ -46,7 +46,11 @@ object NexFusionPatches : PatchBundle {
             appName = "Gboard",
             packageName = "com.google.android.inputmethod.latin",
             patches = GboardPatches,
-            targets = listOf(AppTarget("18.4.1.985164140-beta-arm64-v8a")),
+            targets = listOf(
+                AppTarget("18.4.1.985164140-release-arm64-v8a"),
+                AppTarget("18.4.1.985164140-beta-arm64-v8a"),
+                AppTarget("18.3.1.977415014-release-arm64-v8a"),
+            ),
             appIconColor = 0x4285F4,
         ),
         AppPatchInfo(

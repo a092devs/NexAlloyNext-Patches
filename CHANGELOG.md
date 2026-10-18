@@ -5,6 +5,32 @@ automatically on every push to `main` for the version of the first `X.Y.Z` secti
 version has no release yet. The section matching the release tag becomes the release notes,
 falling back to generated commit notes when no section exists.
 
+## 3.2.5
+
+- `NexFusion` 3.2.5:
+  * Gboard: Ported all features from PixelBoard (by Akshay Kadam):
+    - **In-Gboard "✦ Advanced settings" Screen**: Full Material 3 dialog integrated directly into Gboard settings (`PreferenceHeaderFragment`) with independent toggles for AI Writing Tools, Support All Keyboards, Enable Advanced Voice Typing, and Material 3 Rounded Keys, plus quick restart button (`↻`) and Akshay Kadam attribution.
+    - **Preference Bloat Cleanup**: Automatically stripped "Rate Gboard" and "Help & feedback" from settings screens.
+    - **Gemini Rambler Natural Voice Typing**: Real-time speech cleanup (filters fillers/stutters like "um", "ah", "like"), thought completion (on-the-fly corrections), context auto-punctuation and capitalization, and seamless multilingual fluidity.
+    - **Direct Boot & Battery Lifecycle Readiness**: Device-Protected Storage (DE) support ensures voice typing is immediately active upon boot without manual restarts (#4), and speech recognition bindings (`GoogleAsrService`) are cleanly released when the keyboard is hidden to eliminate idle battery drain (#3).
+    - **Clipboard & UI Enhancements**: Samsung/Vivo clipboard sync (#17) and spellchecker inline chips UI.
+  * Gboard: fixed crash in `ModuleManager` on Gboard 18.4.1 beta caused by invalid wildcard `*` language tags, restoring rounded keycaps (Belka UI) and AI Writing Tools.
+  * Gboard: decoupled rounded keycaps and AI writing tools preference overrides so each feature can be toggled independently.
+  * Gboard: added real-time Phenotype flag override reporting to logcat.
+
+## 3.2.4
+
+- `NexFusion` 3.2.4:
+  * Gboard: added support for Gboard 18.4.1 Release (`odx`/`ody` obfuscated phenotype flag getters).
+  * Gboard: added "Emogen (GenAI Emoji Maker)" patch to unlock generative AI emoji maker access point and endpoints.
+  * Gboard: added "Sign-to-Text (Signboard ASL)" patch for camera-based American Sign Language translation.
+  * Gboard: added "Manual Incognito mode toggle" patch to easily toggle incognito typing directly from toolbar access points.
+  * Gboard: added "Smart auto-correction & fast learning" patch with primary-key revert on backspace, two-stage decoding, and optimized user history learning rates.
+  * Gboard: added "Candidate strip emoji vibrancy" patch ensuring candidate strip emoji glyphs render at full opacity (alpha 255) instead of dull translucent styles.
+  * Gboard: expanded "Quick insert" with dynamic multi-view, contacts, clipboard query results, and local image suggestion flags.
+  * Gboard: expanded "Screenshot suggestion chips" with extended clipboard history and direct quick paste flags.
+  * Gboard: expanded "AI Writing Tools" with staging server endpoints for writing helper and Imagen.
+
 ## 3.2.3
 
 - `NexFusion` 3.2.3:
