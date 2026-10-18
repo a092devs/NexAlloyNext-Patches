@@ -18,6 +18,9 @@ local.properties
 
 *.jks
 *.keystore
+
+# Local-only audit reports — kept on disk, never published to GitHub
+docs/installed-app-patch-audit.md
 signing.properties
 /reports/
 reports/

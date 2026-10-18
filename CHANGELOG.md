@@ -5,6 +5,11 @@ automatically on every push to `main` for the version of the first `X.Y.Z` secti
 version has no release yet. The section matching the release tag becomes the release notes,
 falling back to generated commit notes when no section exists.
 
+## 3.2.1
+
+- `NexFusion` 3.2.1:
+  * Instagram (`com.instagram.android` 451.0.0.53.80, 450.0.0.46.79, 447.0.0.55.81): nine HushGram feature ports — turn off HDR brightness boosts, view DM photos and videos anonymously, upload stories at full quality, tap a feed video to pause, show if a profile follows you, see who a story mentions, show a post's exact time, save profile picture, open developer options. Every anchor is covered by DexKit fingerprint tests run against the reference 451 APK.
+
 ## 3.2.0
 
 - `NexFusion` 3.2.0:

@@ -7,8 +7,8 @@ android {
 
     defaultConfig {
         applicationId = "io.github.nexalloy.patches.nexfusion"
-        versionCode = 13
-        versionName = "3.2.0"
+        versionCode = 14
+        versionName = "3.2.1"
     }
 }
 

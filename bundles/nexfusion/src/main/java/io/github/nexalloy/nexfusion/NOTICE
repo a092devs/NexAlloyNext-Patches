@@ -92,14 +92,15 @@ https://github.com/SysAdminDoc/HushGram
 License: GPL-3.0
 Ported material: Instagram 451.0.0.53.80, 450.0.0.46.79, and 447.0.0.55.81 — HideAds,
 HideSuggestedPosts, HideReelsAds, ViewStoriesAnonymously, ViewLiveAnonymously, AllowScreenshots,
-BlockScreenshotDetection, SanitizeShareLinks, OpenLinksExternally, and DisableAnalytics. The ad,
-suggested, story-seen, live-viewer and analytics rules ride on one runtime filter of
+BlockScreenshotDetection, SanitizeShareLinks, OpenLinksExternally, DisableAnalytics, HideTypingStatus,
+StopStoryAutoAdvance, TurnOffDoubleTapLike, TurnOffHdrBoosts, ViewDmMediaAnonymously,
+UploadStoriesAtFullQuality, TapFeedVideoToPause, ShowIfProfileFollowsYou, SeeWhoStoryMentions,
+ShowPostExactTime, SaveProfilePicture and OpenDeveloperOptions. The ad, suggested, story-seen,
+DM-seen, live-viewer and analytics rules ride on one runtime filter of
 TigonServiceLayer.startRequest; the screenshot, share and link hooks follow the same decisions as
-the upstream extension (in-app hosts, ad contexts, click-tracker unwrapping). Not ported: "View
-DMs anonymously" and "Disable typing status" (the direct-message targets upstream resolves
-structurally), "Ask before like", "Ask before refresh", "Disable video autoplay", "Remove build
-expired popup" and "Unlock developer options" (each needs build-time rewrites of bloks screens,
-build age fields or developer-option gates).
+the upstream extension (in-app hosts, ad contexts, click-tracker unwrapping). Not ported: "Ask
+before like", "Ask before refresh", "Disable video autoplay", "Remove build expired popup" (each
+needs build-time rewrites of bloks screens or build age fields).
 ================================================================================
 https://github.com/crimera/piko
 License: GPL-3.0. The Piko NOTICE's attribution requirement — "This NOTICE file must be preserved

@@ -146,7 +146,7 @@ Bundles use two kinds of tests:
 
 Bundles that port or adapt upstream code must record the upstream repository and keep its
 license notices. Code derived from Morphe, ReVanced, Piko, or other GPL-3.0 projects remains
-GPL-3.0 and is credited in the repository README. A worked example is the `a092devs` bundle,
+GPL-3.0 and is credited in the repository README. A worked example is the `nexfusion` bundle,
 which lists every ported source, its license and the ported files in
-`bundles/a092devs/src/main/java/io/github/nexalloy/a092devs/NOTICE` and documents the
+`bundles/nexfusion/src/main/java/io/github/nexalloy/nexfusion/NOTICE` and documents the
 cross-reference in `docs/installed-app-patch-audit.md` (Section 4).

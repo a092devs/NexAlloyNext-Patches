@@ -37,15 +37,18 @@ import java.util.Locale
  *   callbacks, none of which depend on Instagram's obfuscation.
  * - The download menu hooks restored from this repository's own Piko bundle (see
  *   instagram/download/ and the NOTICE).
+ * - The HushGram feature ports from instagram/InstagramFeaturePatches.kt: HDR boost
+ *   toggle, anonymous DM media viewing, full-quality story uploads, tap-to-pause feed
+ *   video, follows-you indicator, story-mention badge, exact post timestamps,
+ *   profile-picture view/save and the developer options opener.
  *
- * Removed in this pass, because they only logged or hooked class names that do not exist in
- * release builds: "View DMs anonymously" and "Disable typing status" (both need the direct
- * message targets upstream resolves structurally, HushGram direct/seen and direct/typing), and
- * the log-only stubs "Ask before like", "Ask before refresh", "Disable video autoplay",
- * "Remove build expired popup" and "Open developer options" (each has a real upstream
- * implementation to port, from HushGram feed/confirm/, misc/buildexpiry/ and
- * misc/developeroptions/). "Download any media" was restored from the Piko bundle instead.
- * See the audit report for the backlog.
+ * Removed in an earlier pass, because they only logged or hooked class names that do not
+ * exist in release builds: "View DMs anonymously" and "Disable typing status" (both need the
+ * direct message targets upstream resolves structurally, HushGram direct/seen and direct/typing),
+ * and the log-only stubs "Ask before like", "Ask before refresh", "Disable video autoplay",
+ * "Remove build expired popup" (each has a real upstream implementation to port, from HushGram
+ * feed/confirm/, misc/buildexpiry/ and misc/developeroptions/). "Download any media" was
+ * restored from the Piko bundle instead. See the audit report for the backlog.
  */
 
 private const val FLAG_SECURE = 0x2000
@@ -438,4 +441,13 @@ val InstagramPatches = arrayOf(
     OpenLinksExternally,
     DownloadMedia,
     DisableAnalytics,
+    TurnOffHdrBoosts,
+    ViewDmMediaAnonymously,
+    UploadStoriesAtFullQuality,
+    TapFeedVideoToPause,
+    ShowIfProfileFollowsYou,
+    SeeWhoStoryMentions,
+    ShowPostExactTime,
+    SaveProfilePicture,
+    OpenDeveloperOptions,
 )

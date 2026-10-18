@@ -30,7 +30,7 @@ body:
       label: Patch bundles
       description: |
         Installed patch bundles and their versions, as listed in NexAlloy > Patch sources.
-        Example: NexAlloy Patches 1.0.7, a092devs Patches 1.8.0.
+        Example: NexAlloy Patches 1.0.7, NexFusion Patches 3.2.0.
     validations:
       required: true
   - type: textarea
