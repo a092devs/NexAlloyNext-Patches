@@ -97,11 +97,21 @@ internal val optionsOpenerMethod = findMethodDirect {
 
 // Home tab long-press (developer options trigger).
 internal val homeLongPressMethod = findMethodDirect {
-    findMethod {
-        matcher {
-            usingStrings(listOf("click", "activity"), StringMatchType.Contains)
-            name = "onLongClick"
-            returnType = "boolean"
-        }
-    }.first()
+    runCatching {
+        findMethod {
+            matcher {
+                usingStrings(listOf("click", "activity"), StringMatchType.Contains)
+                name = "onLongClick"
+                returnType = "boolean"
+            }
+        }.first()
+    }.getOrElse {
+        findMethod {
+            matcher {
+                usingStrings(listOf("home", "tab"), StringMatchType.Contains)
+                name = "onLongClick"
+                returnType = "boolean"
+            }
+        }.first()
+    }
 }

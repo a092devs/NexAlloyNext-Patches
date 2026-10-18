@@ -512,25 +512,47 @@ val OpenDeveloperOptions = patch(
     runCatching {
         val opener = ::optionsOpenerMethod.memberOrNull as? java.lang.reflect.Method ?: return@runCatching
         val openerClass = opener.declaringClass
+        PatcherLog.info { "NexFusion Instagram: developer options opener found: ${openerClass.name}.${opener.name}" }
+
         val instanceField = openerClass.declaredFields.firstOrNull { Modifier.isStatic(it.modifiers) && it.type == openerClass }
             ?.apply { isAccessible = true }
+        PatcherLog.info { "NexFusion Instagram: developer options instance field: ${instanceField?.name}" }
 
         ::homeLongPressMethod.hookMethod(object : XC_MethodHook() {
             override fun beforeHookedMethod(param: MethodHookParam) {
                 val handlerObj = param.thisObject ?: return
-                val activityField = handlerObj.javaClass.declaredFields.firstOrNull { Activity::class.java.isAssignableFrom(it.type) }
-                    ?.apply { isAccessible = true }
-                val sessionField = handlerObj.javaClass.declaredFields.firstOrNull { it.type.name.contains("UserSession") }
-                    ?.apply { isAccessible = true }
 
-                val activity = activityField?.get(handlerObj) as? Activity
-                val session = sessionField?.get(handlerObj)
-                val openerInstance = instanceField?.get(null) ?: runCatching { openerClass.getDeclaredConstructor().newInstance() }.getOrNull()
+                val activity = handlerObj.javaClass.declaredFields
+                    .firstOrNull { Activity::class.java.isAssignableFrom(it.type) }
+                    ?.apply { isAccessible = true }
+                    ?.get(handlerObj) as? Activity
+
+                val session = handlerObj.javaClass.declaredFields
+                    .firstOrNull { it.type.name.contains("UserSession") }
+                    ?.apply { isAccessible = true }
+                    ?.get(handlerObj)
+
+                val openerInstance = instanceField?.get(null)
+                    ?: runCatching { openerClass.getDeclaredConstructor().newInstance() }.getOrNull()
+
+                PatcherLog.info {
+                    "NexFusion Instagram: Home long press - activity=$activity, session=$session, openerInstance=$openerInstance"
+                }
 
                 if (activity != null && session != null && openerInstance != null) {
-                    opener.invoke(openerInstance, activity, activity, session)
-                    param.result = true
-                    PatcherLog.info { "NexFusion Instagram: Developer options opened from Home long press" }
+                    try {
+                        opener.invoke(openerInstance, activity, activity, session)
+                        param.result = true
+                        PatcherLog.info { "NexFusion Instagram: Developer options opened from Home long press" }
+                    } catch (e: Exception) {
+                        PatcherLog.info(e) { "NexFusion Instagram: opener.invoke failed" }
+                    }
+                } else {
+                    val missing = mutableListOf<String>()
+                    if (activity == null) missing.add("activity")
+                    if (session == null) missing.add("session")
+                    if (openerInstance == null) missing.add("openerInstance")
+                    PatcherLog.info { "NexFusion Instagram: Home long press - missing: ${missing.joinToString(", ")}" }
                 }
             }
         })
