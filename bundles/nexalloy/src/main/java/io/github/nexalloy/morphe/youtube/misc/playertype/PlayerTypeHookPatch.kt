@@ -13,21 +13,6 @@ val PlayerTypeHook = patch(
 ) {
     dependsOn(VersionCheck)
 
-    (if (is_21_41_or_greater) ::PlayerTypeFingerprint else ::PlayerTypeFingerprintLegacy).hookMethod {
-        before { param ->
-            PlayerTypeHookPatch.setPlayerType(param.args[0] as Enum<*>)
-        }
-    }
-
-    ReelWatchPagerFingerprint.hookMethod {
-        val field = ::ReelPlayerViewField.field
-        after { param ->
-            val thiz = param.thisObject
-            val view = field.get(thiz) as View
-            PlayerTypeHookPatch.onShortsCreate(view)
-        }
-    }
-
     ::videoStateFingerprint.hookMethod {
         val field = ::videoStateParameterField.field
         before { param ->

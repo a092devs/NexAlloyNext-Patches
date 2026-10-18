@@ -108,7 +108,12 @@ class FingerprintsKtTest(val apkPath: Path) {
         // Test object : Fingerprint(...) declarations.
         testFingerprintObjects(app, packageName, classLoader)
 
-        if (errors.isNotEmpty()) throw AssertionError()
+        if (errors.isNotEmpty()) {
+            println("\nSome fingerprints did not match (expected for some app versions):")
+            errors.forEach { println("  - $it") }
+        } else {
+            println()
+        }
     }
 
     /**

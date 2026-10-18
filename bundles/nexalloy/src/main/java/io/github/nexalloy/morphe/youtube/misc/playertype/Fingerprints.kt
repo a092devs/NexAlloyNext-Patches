@@ -14,47 +14,6 @@ import io.github.nexalloy.morphe.string
 import org.luckypray.dexkit.query.enums.StringMatchType
 import org.luckypray.dexkit.result.FieldUsingType
 
-private object PlayerTypeEnumFingerprint : Fingerprint(
-    accessFlags = listOf(AccessFlags.STATIC, AccessFlags.CONSTRUCTOR),
-    strings = listOf(
-        "WATCH_WHILE_PICTURE_IN_PICTURE",
-        "NONE",
-        "HIDDEN",
-        "WATCH_WHILE_MINIMIZED",
-        "WATCH_WHILE_MAXIMIZED",
-        "WATCH_WHILE_FULLSCREEN",
-        "WATCH_WHILE_SLIDING_MAXIMIZED_FULLSCREEN",
-        "WATCH_WHILE_SLIDING_MINIMIZED_MAXIMIZED",
-        "WATCH_WHILE_SLIDING_MINIMIZED_DISMISSED",
-        "INLINE_MINIMAL",
-        "VIRTUAL_REALITY_FULLSCREEN",
-    )
-)
-
-// 21.41+ YouTubePlayerOverlaysLayout is no longer a player type listener.
-val PlayerTypeFingerprint = findMethodDirect {
-    val playerTypeEnumType = PlayerTypeEnumFingerprint().declaredClass!!.descriptor
-
-    Fingerprint(
-        definingClass = "Lcom/google/android/apps/youtube/app/player/YouTubePlayerViewNotForReflection;",
-        accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
-        returnType = "V",
-        parameters = listOf(playerTypeEnumType)
-    )()
-}
-
-// 21.40 and lower.
-val PlayerTypeFingerprintLegacy = findMethodDirect {
-    Fingerprint(
-        definingClass = "Lcom/google/android/apps/youtube/app/common/player/overlay/YouTubePlayerOverlaysLayout;",
-        accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
-        returnType = "V",
-        custom = {
-            addParamType { superClass { descriptor = "Ljava/lang/Enum;" } }
-        }
-    )()
-}
-
 internal object ReelWatchPagerFingerprint : Fingerprint(
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
     returnType = "Landroid/view/View;",

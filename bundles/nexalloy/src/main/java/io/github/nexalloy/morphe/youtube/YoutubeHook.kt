@@ -32,8 +32,6 @@ import io.github.nexalloy.morphe.youtube.misc.backgroundplayback.BackgroundPlayb
 import io.github.nexalloy.morphe.youtube.misc.debugging.EnableDebugging
 import io.github.nexalloy.morphe.youtube.misc.privacy.SanitizeSharingLinks
 import io.github.nexalloy.morphe.youtube.misc.settings.SettingsHook
-import io.github.nexalloy.morphe.youtube.layout.hide.infocards.hideInfoCardsPatch
-import io.github.nexalloy.morphe.youtube.misc.playback.disableContinueWatchingPrompt
 import io.github.nexalloy.morphe.youtube.misc.verticalscroll.FixVerticalScroll
 import io.github.nexalloy.morphe.youtube.shared.YOUTUBE_MAIN_ACTIVITY_CLASS_TYPE
 import io.github.nexalloy.morphe.youtube.shared.mainActivityClass
@@ -133,8 +131,6 @@ val YouTubePatches = arrayOf(
     CheckRecycleBitmapMediaSession,
     changeStartPagePatch,
     FixVerticalScroll,
-    disableContinueWatchingPrompt,
-    hideInfoCardsPatch,
     // make sure settingsHook at end to build preferences
     SettingsHook,
     FeatureOverride
