@@ -18,7 +18,6 @@ object InstagramRequestFilter {
         SUGGESTED,
         REELS_ADS,
         STORY_SEEN,
-        DM_SEEN,
         LIVE_VIEWER,
         ANALYTICS,
     }
@@ -42,8 +41,6 @@ object InstagramRequestFilter {
                 path.contains("/logging_client_events") -> Rule.ANALYTICS
 
             path.contains("/api/v2/media/seen/") -> Rule.STORY_SEEN
-
-            path.contains("direct_v2/") && path.contains("/item_seen/") -> Rule.DM_SEEN
 
             path.contains("/heartbeat_and_get_viewer_count/") -> Rule.LIVE_VIEWER
 

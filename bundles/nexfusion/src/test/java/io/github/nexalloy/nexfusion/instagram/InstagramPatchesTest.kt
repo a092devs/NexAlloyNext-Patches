@@ -21,18 +21,14 @@ class InstagramPatchesTest {
         assertEquals(Rule.REELS_ADS, rule("https://i.instagram.com/api/v1/feed/injected_reels_media/"))
         assertEquals(Rule.ADS, rule("https://i.instagram.com/api/v1/async_ads/"))
         assertEquals(Rule.SUGGESTED, rule("https://i.instagram.com/api/v1/discover/chaining/"))
-        assertEquals(Rule.DM_SEEN, rule("https://i.instagram.com/direct_v2/visual_threads/123/item_seen/"))
         assertNull(rule("https://i.instagram.com/api/v1/feed/timeline/"))
 
         val adsUri = URI("https://i.instagram.com/api/v1/async_ads/")
         val reelsAdsUri = URI("https://i.instagram.com/api/v1/feed/injected_reels_media/")
-        val dmSeenUri = URI("https://i.instagram.com/direct_v2/visual_threads/123/item_seen/")
         InstagramRequestFilter.enable(Rule.ADS)
         InstagramRequestFilter.enable(Rule.REELS_ADS)
-        InstagramRequestFilter.enable(Rule.DM_SEEN)
         assertTrue(InstagramRequestFilter.shouldBlock(adsUri))
         assertTrue(InstagramRequestFilter.shouldBlock(reelsAdsUri))
-        assertTrue(InstagramRequestFilter.shouldBlock(dmSeenUri))
         assertFalse(InstagramRequestFilter.shouldBlock(URI("https://i.instagram.com/api/v1/feed/timeline/")))
     }
 
