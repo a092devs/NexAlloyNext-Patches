@@ -14,7 +14,7 @@ android {
 
 nexalloyBundle {
     entry = "io.github.nexalloy.nexfusion.NexFusionPatches"
-    author = "NexAlloy"
+    author = "a092devs"
     descriptionResource = "bundle_description"
     resourcePackageId = 0x4e
     compatibilitySeries = "3.2"
