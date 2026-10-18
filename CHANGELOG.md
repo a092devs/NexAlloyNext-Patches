@@ -5,6 +5,13 @@ automatically on every push to `main` for the version of the first `X.Y.Z` secti
 version has no release yet. The section matching the release tag becomes the release notes,
 falling back to generated commit notes when no section exists.
 
+## 3.2.1
+
+- `NexFusion` 3.2.1:
+  * Patch-only release within series `3.2`, manager unchanged at `3.2.0`.
+  * CI fix: `InstalledAppAuditTest` no longer fails when `docs/installed-app-patch-audit.md` is absent from the published repo (the file is kept locally).
+  * Manager fix: update-check refresh now cancels any in-progress job and debounces rapid taps, so the UI stays fluid.
+
 ## 3.2.0
 
 - `NexFusion` 3.2.0:
