@@ -40,7 +40,8 @@ class DownloadFingerprintsTest {
         assertNotNull(highlightMenuMethod(dexkit))
         assertNotNull(highlightMenuBuilderClass(dexkit))
         assertNotNull(highlightMenuAddMethod(dexkit))
-        assertNotNull(feedDoubleTapMethod(dexkit))
+        assertNotNull(storyHeaderBinderMethod(dexkit))
+        println("Verified storyHeaderBinderMethod: ${storyHeaderBinderMethod(dexkit)}")
         println("ALL FINGERPRINTS PASSED!")
     }
 }

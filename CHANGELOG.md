@@ -5,6 +5,15 @@ automatically on every push to `main` for the version of the first `X.Y.Z` secti
 version has no release yet. The section matching the release tag becomes the release notes,
 falling back to generated commit notes when no section exists.
 
+## 3.2.3
+
+- `NexFusion` 3.2.3:
+  * Instagram: added system File Manager folder picker (`ACTION_OPEN_DOCUMENT_TREE`) with fallback to direct path editing and reset to default options.
+  * Instagram: ported "Hide Follow on stories" from HushGram (#237), keeping stories from accounts you don't follow clean.
+  * Reddit: fixed crash when opening notifications and notifications inbox caused by unboxing and null children lists.
+  * Reddit: ported Redgifs audio playback and HD resolution patches from Morphe, restoring high-quality sound for Redgifs media.
+  * Compatibility: fully tested and validated against Instagram 451.0.0.53.80 and Reddit 2026.41.0.
+
 ## 3.2.2
 
 - `NexFusion` 3.2.2:

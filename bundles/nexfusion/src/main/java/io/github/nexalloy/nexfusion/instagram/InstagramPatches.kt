@@ -8,6 +8,8 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewStub
+import android.view.ViewTreeObserver
 import android.view.WindowManager
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodHook.MethodHookParam
@@ -19,7 +21,9 @@ import io.github.nexalloy.hookMethod
 import io.github.nexalloy.morphe.findMethodDirect
 import io.github.nexalloy.patch
 import org.luckypray.dexkit.query.enums.StringMatchType
+import java.util.Collections
 import java.util.Locale
+import java.util.WeakHashMap
 
 /**
  * Instagram patches ported from SysAdminDoc/HushGram (GPL-3.0),
@@ -424,6 +428,96 @@ val TurnOffDoubleTapLike = patch(
     }.onFailure { PatcherLog.info(it) { "NexFusion Instagram: feed double-tap hook skipped" } }
 }
 
+internal val storyHeaderBinderMethod = findMethodDirect {
+    findMethod {
+        matcher {
+            usingStrings(listOf("ReelViewerItemBinder.bindToolbarViews"))
+            returnType = "void"
+        }
+    }.first()
+}
+
+private const val STORY_EXTRAS_CONTAINER = "reel_header_extras_container"
+private const val STORY_FOLLOW_BUTTON = "reel_header_unconnected_follow_button_stub"
+
+private val storyRowKeepers = Collections.synchronizedMap(WeakHashMap<View, ViewTreeObserver.OnPreDrawListener>())
+
+private fun hideStoryFollowButton(holder: Any) {
+    var c: Class<*>? = holder.javaClass
+    var row: ViewGroup? = null
+    while (c != null && c != Any::class.java) {
+        for (field in c.declaredFields) {
+            if (View::class.java.isAssignableFrom(field.type)) {
+                try {
+                    field.isAccessible = true
+                    val view = field.get(holder) as? View ?: continue
+                    val context = view.context
+                    val containerId = context.resources.getIdentifier(STORY_EXTRAS_CONTAINER, "id", context.packageName)
+                    if (containerId != 0) {
+                        row = (if (view.id == containerId) view else view.findViewById(containerId)) as? ViewGroup
+                        if (row != null) break
+                    }
+                } catch (_: Throwable) {}
+            }
+        }
+        if (row != null) break
+        c = c.superclass
+    }
+
+    val targetRow = row ?: return
+    if (storyRowKeepers.containsKey(targetRow)) return
+
+    val context = targetRow.context
+    val followId = context.resources.getIdentifier(STORY_FOLLOW_BUTTON, "id", context.packageName)
+    if (followId == 0) return
+
+    val listener = object : ViewTreeObserver.OnPreDrawListener, View.OnAttachStateChangeListener {
+        override fun onViewAttachedToWindow(v: View) {
+            v.viewTreeObserver.addOnPreDrawListener(this)
+        }
+
+        override fun onViewDetachedFromWindow(v: View) {
+            if (v.viewTreeObserver.isAlive) {
+                v.viewTreeObserver.removeOnPreDrawListener(this)
+            }
+        }
+
+        override fun onPreDraw(): Boolean {
+            val followBtn = targetRow.findViewById<View>(followId)
+            if (followBtn != null && followBtn !is ViewStub && followBtn.visibility != View.GONE) {
+                followBtn.visibility = View.GONE
+                return false
+            }
+            return true
+        }
+    }
+
+    storyRowKeepers[targetRow] = listener
+    targetRow.addOnAttachStateChangeListener(listener)
+    if (targetRow.isAttachedToWindow) {
+        targetRow.viewTreeObserver.addOnPreDrawListener(listener)
+    }
+}
+
+/**
+ * Takes the Follow button off the top of stories from accounts you don't follow, keeping the header clean.
+ * Ported from SysAdminDoc/HushGram #237.
+ */
+val HideStoryFollow = patch(
+    name = "Hide Follow on stories",
+    description = "Takes the Follow button off the top of stories from accounts you don't follow. The name, time and menu stay.",
+) {
+    runCatching {
+        ::storyHeaderBinderMethod.hookMethod(object : XC_MethodHook() {
+            override fun afterHookedMethod(param: MethodHookParam) {
+                val holder = param.args.firstOrNull() ?: return
+                hideStoryFollowButton(holder)
+            }
+        })
+        PatcherLog.info { "NexFusion Instagram: Hide Follow on stories hook installed" }
+    }.onFailure { PatcherLog.info(it) { "NexFusion Instagram: Hide Follow on stories hook skipped" } }
+}
+
 val InstagramPatches = arrayOf(
     HideAds,
     HideSuggestedPosts,
@@ -432,6 +526,7 @@ val InstagramPatches = arrayOf(
     ViewLiveAnonymously,
     StopStoryAutoAdvance,
     HideTypingStatus,
+    HideStoryFollow,
     TurnOffDoubleTapLike,
     AllowScreenshots,
     BlockScreenshotDetection,
