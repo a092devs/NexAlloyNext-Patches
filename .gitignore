@@ -22,3 +22,6 @@ local.properties
 signing.properties
 /reports/
 reports/
+
+# Local-only documentation — kept on disk, never published to GitHub
+docs/
