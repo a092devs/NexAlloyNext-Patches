@@ -412,6 +412,7 @@ internal val feedDoubleTapMethod = findMethodDirect {
 val TurnOffDoubleTapLike = patch(
     name = "Turn off double tap to like",
     description = "Stops double-tapping posts and reels from liking them, preventing accidental likes while scrolling.",
+    use = false,
 ) {
     runCatching {
         ::feedDoubleTapMethod.hookMethod(object : XC_MethodHook() {

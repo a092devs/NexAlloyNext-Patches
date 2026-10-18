@@ -127,6 +127,8 @@ val userUsernameGetter = findMethodDirect { pandoGetter(USER_CLASS, "username", 
 internal val SHEET_MENU_MODULES = listOf(
     "ClipsOrganicMediaItemViewMoreOptionsController",
     "SimplifiedMediaOverflowBottomSheet",
+    "MediaOverflowBottomSheetHelper",
+    "ClipsLongPressOverflowBottomSheet",
 )
 
 /**
@@ -160,7 +162,6 @@ val sheetMenuBuilderClass = findClassDirect {
 val storyMenuLabelsMethod = findMethodDirect {
     findMethodWithStrings(listOf("[INTERNAL] Pause Playback")) {
         returnType = "java.lang.CharSequence[]"
-        paramCount = 1
     }.single()
 }
 
@@ -183,10 +184,19 @@ val storyMenuSheetMethod = findMethodDirect {
 
 /**
  * A row of the story menu sheet, created with
- * `(?, ImageUrl, ?, Integer, String title, String subtitle, String, Function0 onClick, int icon, boolean, boolean)`.
+ * `(?, ImageUrl, ?, Integer, String title, String subtitle, String, Function0 onClick, int icon, boolean...)`.
  */
 val storyMenuRowConstructor = findMethodDirect {
     findMethod {
+        matcher {
+            name = "<init>"
+            paramTypes(
+                null, "com.instagram.common.typedurl.ImageUrl", null, "java.lang.Integer", "java.lang.String",
+                "java.lang.String", "java.lang.String", "kotlin.jvm.functions.Function0", "int",
+                "boolean", "boolean", "boolean", "boolean",
+            )
+        }
+    }.firstOrNull() ?: findMethod {
         matcher {
             name = "<init>"
             paramTypes(

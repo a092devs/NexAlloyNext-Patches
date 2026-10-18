@@ -2,6 +2,7 @@ package io.github.nexalloy.nexfusion.instagram.download
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.Application
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -9,21 +10,20 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
-import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.util.Log
-import android.util.TypedValue
 import android.view.View
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.TextView
 import android.widget.Toast
+import de.robv.android.xposed.XC_MethodHook.MethodHookParam
 import io.github.nexalloy.HookDsl
 import io.github.nexalloy.IScopedHookCallback
 import io.github.nexalloy.PatcherLog
@@ -38,12 +38,14 @@ import java.lang.reflect.Modifier
 import java.lang.reflect.Proxy
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.Collections
 import java.util.Date
 import java.util.Locale
 import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 // Restored from this repository's Piko bundle: the Instagram download patches as they shipped
 // until release 2.6.0 replaced that bundle's Instagram side with the HushGram ports (recovered
@@ -471,166 +473,269 @@ private fun download(
     dialog.show(activity, "Download options", options)
 }
 
-/**
- * The download settings: save location, custom folder path, per-username folders and timestamp names.
- * Interactive in-place UI updating without flickering dismiss/re-create cycles.
- */
-private fun showDownloadSettings(dialog: InstagramDialog, activity: Activity) {
+private const val FOLDER_PICKER_REQUEST_CODE = 0x51F0
+
+@Volatile
+private var lastSettingsDialog: Pair<InstagramDialog, Activity>? = null
+private val activeFolderPicker = AtomicBoolean(false)
+private val hookedActivityClasses = Collections.synchronizedSet(mutableSetOf<Class<*>>())
+
+private fun hookActivityResultIn(clazz: Class<*>) {
+    if (!hookedActivityClasses.add(clazz)) return
+    val method = clazz.declaredMethods.firstOrNull {
+        it.name == "onActivityResult" && it.parameterTypes.contentEquals(
+            arrayOf(Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, Intent::class.java)
+        )
+    } ?: return
+    runCatching {
+        method.apply { isAccessible = true }.hookMethod {
+            before { param -> handleActivityResult(param) }
+        }
+        log("hooked onActivityResult in ${clazz.name}")
+    }.onFailure { log("failed to hook onActivityResult in ${clazz.name}: $it") }
+}
+
+private fun ensureActivityResultHooked(activity: Activity) {
+    var clazz: Class<*>? = activity.javaClass
+    while (clazz != null && clazz != Any::class.java) {
+        hookActivityResultIn(clazz)
+        clazz = clazz.superclass
+    }
+}
+
+private fun handleActivityResult(param: MethodHookParam) {
+    val requestCode = param.args[0] as? Int ?: return
+    if (requestCode != FOLDER_PICKER_REQUEST_CODE) return
+    param.result = null
+    if (!activeFolderPicker.compareAndSet(true, false)) return
+
+    val activity = param.thisObject as? Activity ?: return
+    val resultCode = param.args[1] as? Int ?: Activity.RESULT_CANCELED
+    val data = param.args[2] as? Intent
+
+    if (resultCode != Activity.RESULT_OK || data?.data == null) {
+        log("folder picker cancelled or no data")
+        mainHandler.post {
+            lastSettingsDialog?.let { (d, a) -> showDownloadSettings(d, a) }
+        }
+        return
+    }
+
+    val uri = data.data!!
+    log("folder picker returned: $uri")
+    runCatching {
+        val takeFlags = data.flags and (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        activity.contentResolver.takePersistableUriPermission(uri, takeFlags)
+    }
+
+    val settings = DownloadSettings.open(activity)
+    val path = parseTreeUriToFolder(uri)
+    if (path.isNotBlank()) {
+        if (path.startsWith("Download/", ignoreCase = true) || path.equals("Download", ignoreCase = true) ||
+            path.startsWith("Downloads/", ignoreCase = true) || path.equals("Downloads", ignoreCase = true)) {
+            settings.location = DownloadSettings.Location.DOWNLOADS
+            val sub = if (path.contains('/')) path.substringAfter('/') else ""
+            settings.customFolder = sub.ifBlank { DownloadSettings.DEFAULT_FOLDER }
+        } else if (path.startsWith("Pictures/", ignoreCase = true) || path.startsWith("Movies/", ignoreCase = true) || path.startsWith("DCIM/", ignoreCase = true)) {
+            settings.location = DownloadSettings.Location.GALLERY
+            val sub = if (path.contains('/')) path.substringAfter('/') else ""
+            settings.customFolder = sub.ifBlank { DownloadSettings.DEFAULT_FOLDER }
+        } else {
+            settings.customFolder = path
+        }
+        toast(activity, "Download folder: ${settings.destination(null, false)}")
+    }
+
+    mainHandler.post {
+        lastSettingsDialog?.let { (d, a) -> showDownloadSettings(d, a) }
+    }
+}
+
+internal fun parseTreeUriToFolder(uri: Uri): String {
+    val docId = runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            DocumentsContract.getTreeDocumentId(uri)
+        } else null
+    }.getOrNull()
+
+    val raw = docId ?: runCatching {
+        val decoded = URLDecoder.decode(uri.toString(), "UTF-8")
+        val treeIndex = decoded.indexOf("/tree/")
+        if (treeIndex != -1) {
+            val after = decoded.substring(treeIndex + "/tree/".length)
+            after.substringBefore("/document/")
+        } else null
+    }.getOrNull() ?: uri.lastPathSegment
+
+    if (raw != null) {
+        val path = if (raw.startsWith("primary:", ignoreCase = true)) {
+            raw.substring("primary:".length).trim('/')
+        } else if (raw.contains(':')) {
+            raw.substringAfter(':').trim('/')
+        } else {
+            raw.trim('/')
+        }
+        if (path.isNotBlank()) return path
+    }
+
+    return DownloadSettings.DEFAULT_FOLDER
+}
+
+private fun openFolderPicker(dialog: InstagramDialog, activity: Activity) {
+    ensureActivityResultHooked(activity)
+    lastSettingsDialog = Pair(dialog, activity)
+    activeFolderPicker.set(true)
+    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+        addFlags(
+            Intent.FLAG_GRANT_READ_URI_PERMISSION or
+            Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+            Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or
+            Intent.FLAG_GRANT_PREFIX_URI_PERMISSION
+        )
+    }
+    try {
+        activity.startActivityForResult(intent, FOLDER_PICKER_REQUEST_CODE)
+    } catch (e: Exception) {
+        log("failed to launch folder picker: $e")
+        toast(activity, "Could not open file manager")
+        activeFolderPicker.set(false)
+        showManualFolderDialog(dialog, activity)
+    }
+}
+
+private fun showManualFolderDialog(dialog: InstagramDialog, activity: Activity) {
     val settings = DownloadSettings.open(activity)
     val density = activity.resources.displayMetrics.density
     val dp = { value: Int -> (value * density).toInt() }
-
-    val typedValue = TypedValue()
-    val primaryColor = if (activity.theme.resolveAttribute(android.R.attr.textColorPrimary, typedValue, true)) {
-        typedValue.data
-    } else {
-        0xFFEEEEEE.toInt()
+    val input = EditText(activity).apply {
+        setText(settings.customFolder)
+        setSelection(text.length)
+        setSingleLine(true)
     }
-    val secondaryColor = if (activity.theme.resolveAttribute(android.R.attr.textColorSecondary, typedValue, true)) {
-        typedValue.data
-    } else {
-        0xFF9E9E9E.toInt()
-    }
-
     val container = LinearLayout(activity).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(dp(22), dp(10), dp(22), dp(10))
+        setPadding(dp(20), dp(10), dp(20), dp(10))
+        addView(input)
     }
-
-    fun addSettingRow(
-        title: String,
-        getSummary: () -> String,
-        onClick: (updateSummary: () -> Unit) -> Unit,
-    ) {
-        val row = LinearLayout(activity).apply {
-            orientation = LinearLayout.VERTICAL
-            isClickable = true
-            isFocusable = true
-            val outValue = TypedValue()
-            activity.theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
-            setBackgroundResource(outValue.resourceId)
-            setPadding(0, dp(12), 0, dp(12))
+    AlertDialog.Builder(activity)
+        .setTitle("Change download folder")
+        .setMessage("Base folder path under ${settings.location.label}:")
+        .setView(container)
+        .setPositiveButton("Save") { _, _ ->
+            val newFolder = input.text.toString().trim()
+            settings.customFolder = newFolder
+            toast(activity, "Download folder: ${settings.destination(null, false)}")
+            showDownloadSettings(dialog, activity)
         }
-
-        val titleView = TextView(activity).apply {
-            text = title
-            textSize = 16f
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(primaryColor)
+        .setNeutralButton("Reset") { _, _ ->
+            settings.customFolder = DownloadSettings.DEFAULT_FOLDER
+            toast(activity, "Reset to default: ${settings.destination(null, false)}")
+            showDownloadSettings(dialog, activity)
         }
-        val summaryView = TextView(activity).apply {
-            text = getSummary()
-            textSize = 13.5f
-            setTextColor(secondaryColor)
-            setPadding(0, dp(3), 0, 0)
+        .setNegativeButton("Cancel") { _, _ ->
+            showDownloadSettings(dialog, activity)
         }
+        .show()
+}
 
-        row.addView(titleView)
-        row.addView(summaryView)
+/**
+ * The download settings: where saves land, custom download folder, per-username folders and timestamp names.
+ * Displayed in Instagram's native bottom sheet dialog. Each row shows its current state; tapping toggles or edits it.
+ */
+private fun showDownloadSettings(dialog: InstagramDialog, activity: Activity) {
+    val settings = DownloadSettings.open(activity)
+    fun onOff(value: Boolean) = if (value) "On" else "Off"
+    val options = mutableListOf<Pair<String, () -> Unit>>()
 
-        val updateSummary = { summaryView.text = getSummary() }
-        row.setOnClickListener { onClick(updateSummary) }
-        container.addView(row)
-    }
-
-    // 1. Save location
-    addSettingRow(
-        title = "Save location",
-        getSummary = { settings.location.label },
-    ) { update ->
+    options += "Save to: ${settings.location.label}" to {
         settings.location = if (settings.location == DownloadSettings.Location.DOWNLOADS) {
             DownloadSettings.Location.GALLERY
         } else {
             DownloadSettings.Location.DOWNLOADS
         }
-        update()
         toast(activity, "Saves go to ${settings.location.label}")
+        showDownloadSettings(dialog, activity)
     }
 
-    // 2. Download folder
-    addSettingRow(
-        title = "Download folder",
-        getSummary = { settings.customFolder },
-    ) { update ->
-        val input = EditText(activity).apply {
-            setText(settings.customFolder)
-            setSelection(text.length)
-            setSingleLine(true)
-        }
-        val dialogView = LinearLayout(activity).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(8), dp(20), dp(8))
-            addView(input)
-        }
-        AlertDialog.Builder(activity)
-            .setTitle("Change download folder")
-            .setMessage("Base folder path relative to storage root (e.g. NexAlloyNext/Instagram):")
-            .setView(dialogView)
-            .setPositiveButton("Save") { _, _ ->
-                val newFolder = input.text.toString().trim()
-                settings.customFolder = newFolder
-                update()
-                toast(activity, "Download folder: ${settings.customFolder}")
-            }
-            .setNeutralButton("Reset") { _, _ ->
-                settings.customFolder = DownloadSettings.DEFAULT_FOLDER
-                update()
-                toast(activity, "Reset to default: ${DownloadSettings.DEFAULT_FOLDER}")
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+    options += "Download folder: ${settings.destination(null, false)}" to {
+        openFolderPicker(dialog, activity)
     }
 
-    // 3. Folder per username
-    addSettingRow(
-        title = "Folder per username",
-        getSummary = {
-            if (settings.perUsername) "Enabled (save into username subfolder)"
-            else "Disabled (save directly into download folder)"
-        },
-    ) { update ->
+    if (settings.customFolder != DownloadSettings.DEFAULT_FOLDER) {
+        options += "Reset to default folder" to {
+            settings.customFolder = DownloadSettings.DEFAULT_FOLDER
+            settings.location = DownloadSettings.Location.DOWNLOADS
+            toast(activity, "Reset to default: ${settings.destination(null, false)}")
+            showDownloadSettings(dialog, activity)
+        }
+    }
+
+    options += "Folder per username: ${onOff(settings.perUsername)}" to {
         settings.perUsername = !settings.perUsername
-        update()
-        toast(activity, "Folder per username: ${if (settings.perUsername) "On" else "Off"}")
+        toast(activity, "Folder per username: ${onOff(settings.perUsername)}")
+        showDownloadSettings(dialog, activity)
     }
 
-    // 4. Timestamp file names
-    addSettingRow(
-        title = "Timestamp names",
-        getSummary = {
-            if (settings.timestamp) "Enabled (append date & time to file name)"
-            else "Disabled (use original file name)"
-        },
-    ) { update ->
+    options += "Timestamp names: ${onOff(settings.timestamp)}" to {
         settings.timestamp = !settings.timestamp
-        update()
-        toast(activity, "Timestamp names: ${if (settings.timestamp) "On" else "Off"}")
+        toast(activity, "Timestamp names: ${onOff(settings.timestamp)}")
+        showDownloadSettings(dialog, activity)
     }
 
-    val scrollView = ScrollView(activity).apply {
-        addView(container)
-    }
+    dialog.show(activity, "Download settings", options)
+}
 
-    AlertDialog.Builder(activity)
-        .setTitle("Download settings")
-        .setView(scrollView)
-        .setPositiveButton("Done") { d, _ -> d.dismiss() }
-        .show()
+
+
+@Volatile
+private var lastResumedActivity: WeakReference<Activity>? = null
+
+private fun contextToActivity(c: Context?): Activity? {
+    var context = c
+    while (context != null) {
+        if (context is Activity) return context
+        context = (context as? ContextWrapper)?.baseContext
+    }
+    return null
 }
 
 /**
  * The activity [owner] is, wraps, or keeps in a field.
  */
 private fun activityIn(owner: Any): Activity? {
-    var context = owner as? Context ?: (owner as? View)?.context
-    while (context != null) {
-        if (context is Activity) return context
-        context = (context as? ContextWrapper)?.baseContext
+    (owner as? Activity)?.let { return it }
+    (owner as? Context)?.let { contextToActivity(it)?.let { act -> return act } }
+    (owner as? View)?.context?.let { contextToActivity(it)?.let { act -> return act } }
+    try {
+        val getActivity = owner.javaClass.methods.firstOrNull {
+            (it.name == "getActivity" || it.name == "requireActivity") && it.parameterCount == 0
+        }
+        (getActivity?.invoke(owner) as? Activity)?.let { return it }
+    } catch (_: Throwable) {}
+
+    var clazz: Class<*>? = owner.javaClass
+    while (clazz != null && clazz != Any::class.java) {
+        for (field in clazz.declaredFields) {
+            if (Modifier.isStatic(field.modifiers)) continue
+            try {
+                field.isAccessible = true
+                val value = field.get(owner) ?: continue
+                (value as? Activity)?.let { return it }
+                (value as? Context)?.let { contextToActivity(it)?.let { act -> return act } }
+                (value as? View)?.context?.let { contextToActivity(it)?.let { act -> return act } }
+                val valueGetActivity = value.javaClass.methods.firstOrNull {
+                    (it.name == "getActivity" || it.name == "requireActivity") && it.parameterCount == 0
+                }
+                (valueGetActivity?.invoke(value) as? Activity)?.let { return it }
+                val valueGetContext = value.javaClass.methods.firstOrNull {
+                    (it.name == "getContext" || it.name == "requireContext") && it.parameterCount == 0
+                }
+                (valueGetContext?.invoke(value) as? Context)?.let { contextToActivity(it)?.let { act -> return act } }
+            } catch (_: Throwable) {}
+        }
+        clazz = clazz.superclass
     }
-    return owner.javaClass.declaredFields.firstNotNullOfOrNull { field ->
-        field.takeIf { Activity::class.java.isAssignableFrom(it.type) && !Modifier.isStatic(it.modifiers) }
-            ?.apply { isAccessible = true }?.get(owner) as Activity?
-    }
+    return lastResumedActivity?.get()
 }
 
 val DownloadMedia = patch(
@@ -639,6 +744,19 @@ val DownloadMedia = patch(
         "Files are saved to Download/NexAlloyNext/Instagram by default; the download settings allow customizing " +
         "the folder path, save location, per-username subfolders and timestamp names.",
 ) {
+    val app = appContext as? Application ?: appContext.applicationContext as? Application
+    app?.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
+        override fun onActivityResumed(activity: Activity) { lastResumedActivity = WeakReference(activity) }
+        override fun onActivityPaused(activity: Activity) {}
+        override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) { lastResumedActivity = WeakReference(activity) }
+        override fun onActivityStarted(activity: Activity) { lastResumedActivity = WeakReference(activity) }
+        override fun onActivityStopped(activity: Activity) {}
+        override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+        override fun onActivityDestroyed(activity: Activity) {
+            if (lastResumedActivity?.get() === activity) lastResumedActivity = null
+        }
+    })
+
     val mediaClass = classLoader.loadClass(MEDIA_CLASS)
     fun <T> optional(name: String, find: () -> T) =
         runCatching(find).onFailure { PatcherLog.error(it) { "$name not found" } }.getOrNull()
@@ -724,6 +842,16 @@ val DownloadMedia = patch(
         }
     }
 
+    // Hook onActivityResult for file manager folder selection
+    hookActivityResultIn(Activity::class.java)
+    runCatching {
+        var c: Class<*>? = classLoader.loadClass("com.instagram.mainactivity.InstagramMainActivity")
+        while (c != null && c != Activity::class.java) {
+            hookActivityResultIn(c)
+            c = c.superclass
+        }
+    }
+
     val menus = mutableMapOf<String, Result<Unit>>()
 
     // The full overflow menu of posts, built from MediaOption$Option values.
@@ -798,15 +926,17 @@ val DownloadMedia = patch(
         val handledBuilders: MutableSet<Any> = Collections.synchronizedSet(Collections.newSetFromMap(WeakHashMap()))
         val addDownload: HookDsl<IScopedHookCallback>.() -> Unit = {
             after { param ->
-                val module = param.args.firstOrNull { it in SHEET_MENU_MODULES } ?: return@after
+                val module = param.args.firstOrNull { it in SHEET_MENU_MODULES }
+                    ?: outerParam.args.firstOrNull { it in SHEET_MENU_MODULES }
+                    ?: return@after
                 // Once per sheet, even when menu methods call each other.
                 if (!handledBuilders.add(param.thisObject)) return@after
                 try {
-                    val owners = listOfNotNull(outerParam.thisObject) + outerParam.args.filterNotNull()
+                    val owners = listOfNotNull(outerParam.thisObject) + outerParam.args.filterNotNull() + listOfNotNull(param.thisObject) + param.args.filterNotNull()
                     val media = owners.firstOrNull { mediaClass.isInstance(it) }
                         ?: owners.firstNotNullOfOrNull { captured(it, mediaClass) }
                         ?: return@after log("no post for $module")
-                    val activity = owners.firstNotNullOfOrNull(::activityIn)
+                    val activity = owners.firstNotNullOfOrNull(::activityIn) ?: lastResumedActivity?.get()
                         ?: return@after log("no activity for $module")
                     val onClick = View.OnClickListener {
                         log("tapped in $module")
@@ -933,9 +1063,9 @@ val DownloadMedia = patch(
                             else -> "Download"
                         }
                     }
-                    val row = rowConstructor.newInstance(
-                        null, null, null, null, DOWNLOAD_LABEL, "", null, onClick, icon, false, false,
-                    )
+                    val trailingBooleans = List((rowConstructor.parameterTypes.size - 9).coerceAtLeast(2)) { false }
+                    val args = arrayOf(null, null, null, null, DOWNLOAD_LABEL, "", null, onClick, icon, *trailingBooleans.toTypedArray())
+                    val row = rowConstructor.newInstance(*args)
                     param.args[0] = listOf(row) + rows
                     log("added to the story menu rows")
                 } catch (e: Exception) {
@@ -986,7 +1116,11 @@ val DownloadMedia = patch(
         val actionConstructor = ::profilePictureActionConstructor.constructor.apply { isAccessible = true }
         val function0 = actionConstructor.parameterTypes[1]
         val imageViewClass = classLoader.loadClass("com.instagram.common.ui.widget.imageview.IgImageView")
-        val imageUrl = imageViewClass.getMethod("getUrlForViewTrackers")
+        val imageUrl = runCatching {
+            imageViewClass.getDeclaredMethod("getUrlForViewTrackers").apply { isAccessible = true }
+        }.getOrElse {
+            imageViewClass.getMethod("getTypedUrl")
+        }
         val pictureId = appContext.resources.getIdentifier("expanded_profile_pic", "id", appContext.packageName)
         val pictureIcon = appContext.resources.getIdentifier(
             "instagram_download_pano_outline_24", "drawable", appContext.packageName,
