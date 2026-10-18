@@ -14,7 +14,7 @@ import de.robv.android.xposed.XposedHelpers
 import java.lang.reflect.Proxy
 
 /**
- * Injects "✦ Advanced settings" into Gboard's main settings menu and removes promotional entries.
+ * Injects "Advanced settings" into Gboard's main settings menu and removes promotional entries.
  *
  * Targets:
  * - `com.google.android.libraries.inputmethod.preferencewidgets.PreferenceHeaderFragment`
@@ -155,7 +155,7 @@ object GboardSettingsHook {
             val screen = explicitGroup ?: getPreferenceScreen(fragment) ?: return
             removeBloatPreferences(screen)
 
-            // Only add the "✦ Advanced settings" entry to the top-level settings header screen
+            // Only add the "Advanced settings" entry to the top-level settings header screen
             if (!fragment.javaClass.name.contains("PreferenceHeaderFragment")) {
                 return
             }
@@ -168,7 +168,7 @@ object GboardSettingsHook {
             val pref = prefClass.getConstructor(Context::class.java).newInstance(context)
 
             setPreferenceKey(pref, ADVANCED_SETTINGS_KEY)
-            setPreferenceTitle(pref, "✦ Advanced settings")
+            setPreferenceTitle(pref, "Advanced settings")
             setPreferenceOrder(pref, 9999)
 
             // Dynamic sparkle icon (Material 3 purple/accent)
@@ -214,7 +214,7 @@ object GboardSettingsHook {
             }
 
             addPreferenceToScreen(screen, pref)
-            Log.i(TAG, "NexFusion: Gboard '✦ Advanced settings' injected successfully into settings screen")
+            Log.i(TAG, "NexFusion: Gboard 'Advanced settings' injected successfully into settings screen")
         } catch (t: Throwable) {
             Log.w(TAG, "NexFusion: Failed to inject Advanced settings preference", t)
         }

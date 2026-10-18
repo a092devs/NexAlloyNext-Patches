@@ -98,7 +98,7 @@ val GboardFlowMode = patch(
 
 val GboardSettingsMenu = patch(
     name = "Advanced settings menu",
-    description = "Adds the Material 3 '✦ Advanced settings' screen at the bottom of Gboard settings, and cleans up promotional links.",
+    description = "Adds the Material 3 'Advanced settings' screen at the bottom of Gboard settings, and cleans up promotional links.",
 ) {
     GboardSettingsHook.install(classLoader)
 }

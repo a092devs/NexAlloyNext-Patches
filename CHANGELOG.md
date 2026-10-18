@@ -9,7 +9,7 @@ falling back to generated commit notes when no section exists.
 
 - `NexFusion` 3.2.5:
   * Gboard: Ported all features from PixelBoard (by Akshay Kadam):
-    - **In-Gboard "✦ Advanced settings" Screen**: Full Material 3 dialog integrated directly into Gboard settings (`PreferenceHeaderFragment`) with independent toggles for AI Writing Tools, Support All Keyboards, Enable Advanced Voice Typing, and Material 3 Rounded Keys, plus quick restart button (`↻`) and Akshay Kadam attribution.
+    - **In-Gboard "Advanced settings" Screen**: Full Material 3 dialog integrated directly into Gboard settings (`PreferenceHeaderFragment`) with independent toggles for AI Writing Tools, Support All Keyboards, Enable Advanced Voice Typing, and Material 3 Rounded Keys, plus quick restart button (`↻`) and Akshay Kadam attribution.
     - **Preference Bloat Cleanup**: Automatically stripped "Rate Gboard" and "Help & feedback" from settings screens.
     - **Gemini Rambler Natural Voice Typing**: Real-time speech cleanup (filters fillers/stutters like "um", "ah", "like"), thought completion (on-the-fly corrections), context auto-punctuation and capitalization, and seamless multilingual fluidity.
     - **Direct Boot & Battery Lifecycle Readiness**: Device-Protected Storage (DE) support ensures voice typing is immediately active upon boot without manual restarts (#4), and speech recognition bindings (`GoogleAsrService`) are cleanly released when the keyboard is hidden to eliminate idle battery drain (#3).
