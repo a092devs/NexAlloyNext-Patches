@@ -79,6 +79,7 @@ object NexFusionPatches : PatchBundle {
             packageName = "com.reddit.frontpage",
             patches = RedditPatches,
             targets = listOf(
+                AppTarget("2026.41.0"),
                 AppTarget("2026.38.0"),
                 AppTarget("2026.37.0"),
                 AppTarget("2026.36.0"),

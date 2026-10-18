@@ -117,3 +117,53 @@ internal object AppResumeRedirectFingerprint : Fingerprint(
         literal(0x10008000),
     )
 )
+
+/** Feed post header cell metadata, containing the post ID and media URL. */
+internal object MetadataCellToStringFingerprint : Fingerprint(
+    name = "toString",
+    returnType = "Ljava/lang/String;",
+    parameters = listOf(),
+    filters = listOf(
+        string("MetadataCellFragment(id="),
+        string(", mediaPath="),
+    ),
+)
+
+/** Feed video element cell, containing the linkId and Reddit default video URL. */
+internal object VideoElementToStringFingerprint : Fingerprint(
+    name = "toString",
+    returnType = "Ljava/lang/String;",
+    parameters = listOf(),
+    filters = listOf(
+        string("VideoElement(linkId="),
+        string(", defaultUrl="),
+    ),
+)
+
+/** Video player URLs, containing defaultUrl as first argument. */
+internal object VideoUrlsToStringFingerprint : Fingerprint(
+    name = "toString",
+    returnType = "Ljava/lang/String;",
+    parameters = listOf(),
+    filters = listOf(
+        string("VideoUrls(defaultUrl="),
+    ),
+)
+
+/** Media3 DataSpec constructor, created for every URL the video player loads. */
+internal object DataSpecToStringFingerprint : Fingerprint(
+    name = "toString",
+    returnType = "Ljava/lang/String;",
+    filters = listOf(
+        string("DataSpec["),
+    ),
+)
+
+/** Domain VideoUrls model of feed videos. */
+internal object DomainVideoUrlsToStringFingerprint : Fingerprint(
+    definingClass = "Lcom/reddit/domain/model/VideoUrls;",
+    name = "toString",
+    returnType = "Ljava/lang/String;",
+)
+
+

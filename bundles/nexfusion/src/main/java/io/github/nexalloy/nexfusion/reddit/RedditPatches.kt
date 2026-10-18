@@ -43,21 +43,20 @@ val DisableScreenshotBanner = patch(
         Executor::class.java,
         callbackClass,
     )
-    if (register == null) {
-        PatcherLog.info { "NexFusion: registerScreenCaptureCallback not found, screenshot banner patch skipped" }
-        return@patch
+    if (register != null) {
+        XposedBridge.hookMethod(register, XC_MethodReplacement.DO_NOTHING)
     }
-    val noopCallback = Proxy.newProxyInstance(classLoader, arrayOf(callbackClass)) { _, _, _ -> null }
-    XposedBridge.hookMethod(register, object : XC_MethodHook() {
-        override fun beforeHookedMethod(param: MethodHookParam) {
-            if (param.args.size == 2 && param.args[1] != null) {
-                param.args[1] = noopCallback
-            }
-        }
-    })
+    val unregister = XposedHelpers.findMethodExactIfExists(
+        Activity::class.java,
+        "unregisterScreenCaptureCallback",
+        callbackClass,
+    )
+    if (unregister != null) {
+        XposedBridge.hookMethod(unregister, XC_MethodReplacement.DO_NOTHING)
+    }
 }
 
-/** Upstream replaces the three getter bodies with early returns. */
+/** Upstream replaces the click tracking getters with early returns. */
 val OpenLinksDirectly = patch(
     name = "Open Reddit links directly",
     description = "Opens external links without going through the out.reddit.com redirector.",
@@ -66,8 +65,6 @@ val OpenLinksDirectly = patch(
         ?.let { XposedBridge.hookMethod(it, XC_MethodReplacement.returnConstant(false)) }
     GetOutboundClickTrackingFingerprint.memberOrNull
         ?.let { XposedBridge.hookMethod(it, XC_MethodReplacement.returnConstant(false)) }
-    GetOutboundLinkFingerprint.memberOrNull
-        ?.let { XposedBridge.hookMethod(it, XC_MethodReplacement.returnConstant(null)) }
 }
 
 /**
@@ -90,13 +87,21 @@ val DisableAutoRefresh = patch(
     }
 }
 
-/** Upstream returns early from the `AppResumeAction` dispatcher. */
+/** Upstream returns early from the `AppResumeAction` dispatcher when redirecting to home. */
 val DisableHomeRedirect = patch(
     name = "Disable Reddit home screen redirect",
     description = "Stops Reddit from redirecting to the home screen when the app resumes from the background.",
 ) {
-    AppResumeRedirectFingerprint.memberOrNull
-        ?.let { XposedBridge.hookMethod(it, XC_MethodReplacement.DO_NOTHING) }
+    AppResumeRedirectFingerprint.memberOrNull?.let { member ->
+        XposedBridge.hookMethod(member, object : XC_MethodHook() {
+            override fun beforeHookedMethod(param: MethodHookParam) {
+                val arg = param.args.firstOrNull()?.toString().orEmpty()
+                if (arg.contains("REDIRECT_TO_HOME")) {
+                    param.result = null
+                }
+            }
+        })
+    }
 }
 
 /**
@@ -173,9 +178,12 @@ val HideViewCounts = patch(
 val RedditPatches = arrayOf(
     DisableScreenshotBanner,
     OpenLinksDirectly,
+    RedgifsAudio,
+    RedgifsHd,
     DisableAutoRefresh,
     DisableHomeRedirect,
     TransparentSystemNavBar,
     HideUpvoteScores,
     HideViewCounts,
 )
+

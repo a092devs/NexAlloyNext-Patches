@@ -145,9 +145,10 @@ class FingerprintsKtTest(val apkPath: Path) {
 
             if (!Fingerprint::class.java.isAssignableFrom(cls)) continue
             val instance = try {
-                cls.kotlin.objectInstance as? Fingerprint ?: continue
-            } catch (_: IllegalAccessException) {
-                // Private object declarations cannot be accessed via reflection.
+                (runCatching { cls.getDeclaredField("INSTANCE").apply { isAccessible = true }.get(null) }.getOrNull() as? Fingerprint)
+                    ?: (runCatching { cls.kotlin.objectInstance }.getOrNull() as? Fingerprint)
+                    ?: continue
+            } catch (_: Throwable) {
                 continue
             }
 
