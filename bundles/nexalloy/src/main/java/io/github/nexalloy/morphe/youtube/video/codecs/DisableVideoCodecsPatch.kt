@@ -2,6 +2,7 @@ package io.github.nexalloy.morphe.youtube.video.codecs
 
 import android.view.Display
 import app.morphe.extension.youtube.patches.DisableVideoCodecsPatch
+import io.github.nexalloy.morphe.shared.misc.settings.preference.ListPreference
 import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreference
 import io.github.nexalloy.morphe.youtube.misc.settings.PreferenceScreen
 import io.github.nexalloy.patch
@@ -13,9 +14,10 @@ val DisableVideoCodecs = patch(
 ) {
     PreferenceScreen.VIDEO.addPreferences(
         SwitchPreference("morphe_disable_hdr_video"),
-        SwitchPreference(
-            key = "morphe_force_avc_codec",
-            tag = app.morphe.extension.youtube.settings.preference.ForceAVCSwitchPreference::class.java
+        SwitchPreference("morphe_force_hdr_video", summary = true),
+        ListPreference(
+            key = "morphe_video_codec",
+            tag = app.morphe.extension.youtube.settings.preference.VideoCodecListPreference::class.java
         )
     )
 

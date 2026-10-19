@@ -21,6 +21,7 @@ import io.github.nexalloy.morphe.youtube.layout.dearrow.deArrowPatch
 import io.github.nexalloy.morphe.youtube.layout.hide.ambientmode.AmbientMode
 import io.github.nexalloy.morphe.youtube.layout.hide.general.HideLayoutComponents
 import io.github.nexalloy.morphe.youtube.layout.hide.shorts.HideShortsComponents
+import io.github.nexalloy.morphe.youtube.layout.statusbar.HideStatusBar
 import io.github.nexalloy.morphe.youtube.layout.miniplayer.Miniplayer
 import io.github.nexalloy.morphe.youtube.layout.player.pip.PipSeekButtons
 import io.github.nexalloy.morphe.youtube.layout.playlistautoplay.DisablePlaylistAutoplay
@@ -125,6 +126,7 @@ val YouTubePatches = arrayOf(
     deArrowPatch,
     BypassImageRegionRestrictionsPatch,
     AmbientMode,
+    HideStatusBar,
     Miniplayer,
     PipSeekButtons,
     DisablePlaylistAutoplay,

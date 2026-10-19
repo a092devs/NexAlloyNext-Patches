@@ -49,9 +49,8 @@ val RememberVideoQuality = patch {
         )
     )
 
-    onCreateHook.add { controller ->
-        RememberVideoQualityPatch.newVideoStarted(controller)
-    }
+    insertLiteralOverride(45408049L, RememberVideoQualityPatch::useInitialVideoQuality)
+    insertLiteralOverride(45738253L, RememberVideoQualityPatch::sendQualityConstraintToServer)
 
     // Inject a call to override initial video quality.
     ::PlaybackStartParametersInit.hookMethod {

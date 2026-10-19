@@ -3,7 +3,6 @@ package io.github.nexalloy.morphe.youtube.layout.flyout
 import android.app.Dialog
 import android.widget.PopupWindow
 import android.widget.TextView
-import app.morphe.extension.youtube.patches.components.ChannelPageFlyoutFilter
 import app.morphe.extension.youtube.patches.utils.FlyoutUtils
 import io.github.nexalloy.morphe.shared.misc.litho.filter.addLithoFilter
 import io.github.nexalloy.morphe.shared.misc.proto.hookElement
@@ -71,7 +70,6 @@ val flyoutPatch = patch(
     }
 
     hookElement(FlyoutUtils::onCommentsLoaded)
-    addLithoFilter(ChannelPageFlyoutFilter())
 
     // Track and initialize flyout menu buttons generically.
     val getSubMessageMethod = ::getSubMessageReference.method

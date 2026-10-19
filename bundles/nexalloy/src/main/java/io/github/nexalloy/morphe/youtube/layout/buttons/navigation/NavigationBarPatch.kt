@@ -88,6 +88,11 @@ val NavigationBar = patch(
     // Animated navigation tabs.
     insertLiteralOverride(45680008L, NavigationBarPatch::useAnimatedNavigationButtons)
 
+    // Translucent navigation bar (fixes raised navigation bar / bottom empty space)
+    insertLiteralOverride(45630927L, NavigationBarPatch::useTranslucentNavigationBar)
+    insertLiteralOverride(45632194L, NavigationBarPatch::useTranslucentNavigationBar)
+    insertLiteralOverride(45631257L, NavigationBarPatch::useTranslucentNavigationBar)
+
     // TODO Narrow navigation buttons
 
     // disableAutoHidingNavigationBar
