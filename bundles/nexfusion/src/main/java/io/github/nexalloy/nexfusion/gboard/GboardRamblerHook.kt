@@ -5,6 +5,8 @@ import android.content.Context
 import android.os.Build
 import android.preference.PreferenceManager
 import android.util.Log
+import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
@@ -30,6 +32,10 @@ import de.robv.android.xposed.XposedHelpers
  * 4. Modern Spell Checker Suggestion Chips on Android 12+:
  *    - Hooks Gboard spell checker utility methods `(Context, TextServicesManager) -> Boolean` to
  *      force inline spell check chips and grammar checking.
+ *
+ * 5. Promo & Feedback Banner Suppression:
+ *    - Suppresses "Help improve voice typing" and Rambler feedback dropdown chips that clutter the toolbar
+ *      and cause truncated/clipped visual bugs in landscape mode.
  */
 object GboardRamblerHook {
 
@@ -43,6 +49,7 @@ object GboardRamblerHook {
         hookVoiceSettingsSelectors(classLoader)
         hookImeLifecycle(classLoader)
         hookSpellCheckerChips(classLoader)
+        suppressPromoBanners(classLoader)
     }
 
     private fun hookVoiceSettingsSelectors(classLoader: ClassLoader) {
@@ -101,15 +108,17 @@ object GboardRamblerHook {
             } else context
 
             val prefs = PreferenceManager.getDefaultSharedPreferences(targetContext)
-            if (!prefs.getBoolean(PREF_ENABLE_JETSON, false)) {
-                prefs.edit()
-                    .putBoolean(PREF_ENABLE_JETSON, true)
-                    .putBoolean(PREF_AUTO_PUNCTUATION, true)
-                    .putBoolean(PREF_ENABLE_AUTO_PUNCTUATION, true)
-                    .putBoolean(PREF_USE_GOOGLE_VOICE, true)
-                    .apply()
-                Log.i(TAG, "NexFusion: Initialized Rambler preferences in ${targetContext.packageName}")
-            }
+            prefs.edit()
+                .putBoolean(PREF_ENABLE_JETSON, true)
+                .putBoolean(PREF_AUTO_PUNCTUATION, true)
+                .putBoolean(PREF_ENABLE_AUTO_PUNCTUATION, true)
+                .putBoolean(PREF_USE_GOOGLE_VOICE, true)
+                .putBoolean("voice_donation_opt_out", true)
+                .putInt("voice_donation_promo_shown_times", 999)
+                .putBoolean("has_shown_voice_donation_promo", true)
+                .putBoolean("pref_key_always_show_agentic_dictation_promo_banner", false)
+                .apply()
+            Log.i(TAG, "NexFusion: Ensured Rambler preferences in ${targetContext.packageName}")
         } catch (t: Throwable) {
             Log.w(TAG, "NexFusion: Failed to ensure Rambler preferences", t)
         }
@@ -221,6 +230,93 @@ object GboardRamblerHook {
                     }
                 }
             }
+        }
+    }
+
+    private fun suppressPromoBanners(classLoader: ClassLoader) {
+        // 1. Suppress VoiceDonationPromoManager (vwi across releases)
+        val donationPromoClasses = listOf(
+            "com.google.android.apps.inputmethod.libs.voiceime.VoiceDonationPromoManager",
+            "vwi"
+        )
+        for (className in donationPromoClasses) {
+            val clazz = runCatching { classLoader.loadClass(className) }.getOrNull() ?: continue
+            for (m in clazz.declaredMethods) {
+                if (m.name == "a" || m.name == "createShowBannerTask") {
+                    runCatching {
+                        XposedBridge.hookMethod(m, object : XC_MethodHook() {
+                            override fun beforeHookedMethod(param: MethodHookParam) {
+                                param.result = null
+                            }
+                        })
+                        Log.i(TAG, "NexFusion: Suppressed voice donation promo banner in $className.${m.name}()")
+                    }
+                }
+            }
+        }
+
+        // 2. Suppress RamblerAlToolbarFeedbackHandler (kmf across releases)
+        val feedbackClasses = listOf(
+            "com.google.android.apps.inputmethod.libs.agenticdictation.ui.impl.RamblerAlToolbarFeedbackHandler",
+            "kmf"
+        )
+        for (className in feedbackClasses) {
+            val clazz = runCatching { classLoader.loadClass(className) }.getOrNull() ?: continue
+            for (m in clazz.declaredMethods) {
+                if (m.name == "b" || m.name == "show") {
+                    runCatching {
+                        XposedBridge.hookMethod(m, object : XC_MethodHook() {
+                            override fun beforeHookedMethod(param: MethodHookParam) {
+                                param.result = null
+                            }
+                        })
+                        Log.i(TAG, "NexFusion: Suppressed Rambler feedback dropdown in $className.${m.name}()")
+                    }
+                }
+            }
+        }
+
+        // 3. Suppress DefaultAgenticDictationPromoManager (kls across releases)
+        val agenticPromoClasses = listOf(
+            "com.google.android.apps.inputmethod.libs.agenticdictation.ui.impl.DefaultAgenticDictationPromoManager",
+            "kls"
+        )
+        for (className in agenticPromoClasses) {
+            val clazz = runCatching { classLoader.loadClass(className) }.getOrNull() ?: continue
+            for (m in clazz.declaredMethods) {
+                if (m.name.contains("show", ignoreCase = true) || m.name.contains("banner", ignoreCase = true)) {
+                    runCatching {
+                        XposedBridge.hookMethod(m, object : XC_MethodHook() {
+                            override fun beforeHookedMethod(param: MethodHookParam) {
+                                param.result = null
+                            }
+                        })
+                    }
+                }
+            }
+        }
+
+        // 4. View-level suppression for any remaining "Help improve" feedback or promo chip
+        runCatching {
+            XposedHelpers.findAndHookMethod(
+                View::class.java,
+                "onAttachedToWindow",
+                object : XC_MethodHook() {
+                    override fun afterHookedMethod(param: MethodHookParam) {
+                        val view = param.thisObject as? View ?: return
+                        val tag = view.tag?.toString() ?: ""
+                        val desc = view.contentDescription?.toString() ?: ""
+                        val isPromoOrFeedback = tag.contains("rambler-al-feedback", ignoreCase = true) ||
+                                tag.contains("voice_donation_promo", ignoreCase = true) ||
+                                tag.contains("agentic_dictation_promo", ignoreCase = true) ||
+                                desc.contains("Help improve", ignoreCase = true)
+                        if (isPromoOrFeedback) {
+                            view.visibility = View.GONE
+                            (view.parent as? ViewGroup)?.removeView(view)
+                        }
+                    }
+                }
+            )
         }
     }
 }

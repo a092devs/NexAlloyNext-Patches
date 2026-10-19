@@ -5,6 +5,12 @@ automatically on every push to `main` for the version of the first `X.Y.Z` secti
 version has no release yet. The section matching the release tag becomes the release notes,
 falling back to generated commit notes when no section exists.
 
+## 3.2.9
+
+- `NexFusion` 3.2.9:
+  * Gboard: Fixed visual issue in landscape mode by suppressing internal dogfood feedback buttons ("Help improve Rambler by reporting quality issues or bugs") and voice donation / dictation promo nag banners ("Help improve voice typing?").
+  * Gboard: Added `FlagOverride.forceFalse()` support and enforced clean toolbar layout without promo banner clipping.
+
 ## 3.2.8
 
 - `NexFusion` 3.2.8:

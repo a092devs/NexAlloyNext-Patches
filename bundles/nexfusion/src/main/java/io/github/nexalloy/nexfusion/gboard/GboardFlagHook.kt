@@ -31,6 +31,9 @@ class FlagOverride private constructor(
         /** Forces a boolean true, replacing null, false, or true. */
         fun forceTrue(): FlagOverride = FlagOverride({ it == null || it is Boolean }, true)
 
+        /** Forces a boolean false, replacing null, false, or true. */
+        fun forceFalse(): FlagOverride = FlagOverride({ it == null || it is Boolean }, false)
+
         /** Replaces any boxed long, like the count and character-limit policies. */
         fun forceLong(value: Long): FlagOverride = FlagOverride({ it is Long }, value)
 

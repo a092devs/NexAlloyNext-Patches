@@ -115,12 +115,12 @@ val GboardRamblerVoiceTyping = patch(
         "config_agentic_dictation" to FlagOverride.forceTrue(),
         "enable_jetson_in_toolbar" to FlagOverride.forceTrue(),
         "filter_rambler_contributed_input_view_session" to FlagOverride.forceTrue(),
-        "enable_rambler_toolbar_at_cursor_position" to FlagOverride.forceTrue(),
-        "enable_rambler_al_toolbar" to FlagOverride.forceTrue(),
-        "enable_rambler_al_toolbar_overflow_menu" to FlagOverride.forceTrue(),
+        "enable_rambler_toolbar_at_cursor_position" to FlagOverride.forceFalse(),
+        "enable_rambler_al_toolbar" to FlagOverride.forceFalse(),
+        "enable_rambler_al_toolbar_overflow_menu" to FlagOverride.forceFalse(),
         "enable_hide_rambler_al_idling_state" to FlagOverride.forceTrue(),
-        "enable_rambler_al_show_hide_new_animation" to FlagOverride.forceTrue(),
-        "enable_rambler_al_teleporting_animation" to FlagOverride.forceTrue(),
+        "enable_rambler_al_show_hide_new_animation" to FlagOverride.forceFalse(),
+        "enable_rambler_al_teleporting_animation" to FlagOverride.forceFalse(),
         "rambler_motion_with_gradient_color" to FlagOverride.forceTrue(),
         "agentic_dictation_spot_light2" to FlagOverride.forceTrue(),
         "agentic_dictation_new_gi_motion" to FlagOverride.forceTrue(),
@@ -129,6 +129,19 @@ val GboardRamblerVoiceTyping = patch(
         "enable_pcm_audio_caching_for_offline_fallback" to FlagOverride.forceTrue(),
         "agentic_dictation_enable_seamless_fallback" to FlagOverride.forceTrue(),
         "agentic_dictation_enable_proactive_parallel_asr" to FlagOverride.forceTrue(),
+
+        // Suppress voice donation, promo nag banners, and internal dogfood feedback
+        "rambler_al_in_situ_edu_tooltip" to FlagOverride.forceFalse(),
+        "agentic_dictation_enable_promo_banner" to FlagOverride.forceFalse(),
+        "agentic_dictation_promo_banner" to FlagOverride.forceFalse(),
+        "agentic_dictation_promo_banner_max_show_count" to FlagOverride.forceLong(0L),
+        "pref_key_always_show_agentic_dictation_promo_banner" to FlagOverride.forceFalse(),
+        "pref_key_always_show_agentic_dictation_onboarding" to FlagOverride.forceFalse(),
+        "agentic_dictation_show_onboarding" to FlagOverride.forceFalse(),
+        "agentic_dictation_edits_tooltip" to FlagOverride.forceFalse(),
+        "voice_donation_promo_banner" to FlagOverride.forceFalse(),
+        "dictation_promo_banner" to FlagOverride.forceFalse(),
+        "dictation_promo_banner_max_show_count" to FlagOverride.forceLong(0L),
 
         // Advanced Voice / NGA flags
         "enable_nga" to FlagOverride.forceTrue(),
@@ -146,6 +159,9 @@ val GboardRamblerVoiceTyping = patch(
             "pref_key_enable_auto_punctuation" to true,
             "pref_key_use_google_voice_typing" to true,
             "pref_advanced_voice_typing_enabled" to true,
+            "voice_donation_opt_out" to true,
+            "has_shown_voice_donation_promo" to true,
+            "pref_key_always_show_agentic_dictation_promo_banner" to false,
         )
     )
     GboardRamblerHook.install(classLoader)
