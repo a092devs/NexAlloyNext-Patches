@@ -6,6 +6,8 @@ import io.github.nexalloy.PatchBundle
 import io.github.nexalloy.nexfusion.discord.DiscordPatches
 import io.github.nexalloy.nexfusion.facebook.FacebookPatches
 import io.github.nexalloy.nexfusion.gboard.GboardPatches
+import io.github.nexalloy.nexfusion.gmail.GmailPatches
+import io.github.nexalloy.nexfusion.google.GoogleDiscoverPatches
 import io.github.nexalloy.nexfusion.instagram.InstagramPatches
 import io.github.nexalloy.nexfusion.linkedin.LinkedInPatches
 import io.github.nexalloy.nexfusion.mixplorer.MixplorerPatches
@@ -51,6 +53,18 @@ object NexFusionPatches : PatchBundle {
                 AppTarget("18.4.1.985164140-beta-arm64-v8a"),
                 AppTarget("18.3.1.977415014-release-arm64-v8a"),
             ),
+            appIconColor = 0x4285F4,
+        ),
+        AppPatchInfo(
+            appName = "Gmail",
+            packageName = "com.google.android.gm",
+            patches = GmailPatches,
+            appIconColor = 0xEA4335,
+        ),
+        AppPatchInfo(
+            appName = "Google (Discover)",
+            packageName = "com.google.android.googlequicksearchbox",
+            patches = GoogleDiscoverPatches,
             appIconColor = 0x4285F4,
         ),
         AppPatchInfo(

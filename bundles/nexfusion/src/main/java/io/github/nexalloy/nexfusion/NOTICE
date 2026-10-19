@@ -171,4 +171,23 @@ hook logic, re-implemented in bundles/nexfusion/src/main/java/io/github/nexalloy
 against the NexAlloy runtime patcher API.
 Copyright (C) 2eno
 ================================================================================
+MrxSiN/GmailHideAds & gnadgnaoh/NexAlloy-XES
+https://github.com/MrxSiN/GmailHideAds
+https://github.com/gnadgnaoh/NexAlloy-XES
+License: GPL-3.0
+Ported material: Gmail (com.google.android.gm) "Hide ads" patch — DexKit discovery of
+com.google.android.gm.ads.* ad teaser view constructors taking (Context, AttributeSet),
+collapsing layoutParams (height=0, margins=0) and enforcing View.GONE on instantiation
+and window attachment to remove sponsored rows in Promotions and Social tabs.
+================================================================================
+hxreborn/discover-ads-filter & gnadgnaoh/NexAlloy-XES
+https://github.com/hxreborn/discover-ads-filter
+https://github.com/gnadgnaoh/NexAlloy-XES
+License: GPL-3.0
+Ported material: Google Discover (com.google.android.googlequicksearchbox) "Filter Discover ads"
+patch — DexKit fingerprinting of AGSA's stream renderable list method via stream markers
+("WithContent(sessionRepresentation=", "contentSlices=", "elementsRenderableData="),
+filtering sponsored feed items with "feedads" cluster tokens from the stream payload.
+================================================================================
+
 

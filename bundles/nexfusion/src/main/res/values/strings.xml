@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">NexFusion Patches</string>
-    <string name="bundle_description">Community ports of Morphe patch sources to Xposed hooks: Discord, Facebook, Gboard, Instagram, LinkedIn, MiXplorer, Proton VPN, Reddit, Spotify and X.</string>
+    <string name="bundle_description">Community ports of Morphe patch sources to Xposed hooks: Discord, Facebook, Gboard, Gmail, Google (Discover), Instagram, LinkedIn, MiXplorer, Proton VPN, Reddit, Spotify and X.</string>
 </resources>
