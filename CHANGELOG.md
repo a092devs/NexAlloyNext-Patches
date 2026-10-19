@@ -5,9 +5,9 @@ automatically on every push to `main` for the version of the first `X.Y.Z` secti
 version has no release yet. The section matching the release tag becomes the release notes,
 falling back to generated commit notes when no section exists.
 
-## 3.2.10
+## 3.3.0
 
-- `NexFusion` 3.2.10:
+- `NexFusion` 3.3.0:
   * Gmail: Added "Hide ads" patch to remove sponsored conversation rows between emails in Promotions and Social tabs (ported from `MrxSiN/GmailHideAds` and `gnadgnaoh/NexAlloy-XES`).
   * Google App: Added "Filter Discover ads" patch to filter promoted ad cards from the Google Discover feed (ported from `hxreborn/discover-ads-filter` and `gnadgnaoh/NexAlloy-XES`).
   * NOTICE: Added full attribution and license credits for ported material.
