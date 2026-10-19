@@ -171,4 +171,13 @@ hook logic, re-implemented in bundles/nexfusion/src/main/java/io/github/nexalloy
 against the NexAlloy runtime patcher API.
 Copyright (C) 2eno
 ================================================================================
+TheWinner02/ReVancedXposed_Spotify
+https://github.com/TheWinner02/ReVancedXposed_Spotify
+License: GPL-3.0
+Ported material: Spotify "Unlock Spotify Premium" and "LogOutPatch" mechanisms — on-demand and
+unforced shuffle ProductStateProto attribute mappings, OkHttp detection/dual-sync blocking,
+authentication token caching/replay, and SharedPreferences credential protection. Re-implemented
+in bundles/nexfusion/src/main/java/io/github/nexalloy/nexfusion/spotify/misc/UnlockPremiumPatch.kt
+against the NexAlloy runtime patcher API.
+================================================================================
 

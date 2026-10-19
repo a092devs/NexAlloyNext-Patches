@@ -212,3 +212,68 @@ val formatAndroidShareSheetUrlMethod = findMethodDirect {
 }
 
 // endregion
+
+// region Premium
+
+/**
+ * Resolves ProductStateProto attributes map getter.
+ */
+@get:SkipTest
+val productStateProtoMethod = findMethodDirect {
+    runCatching {
+        findMethod {
+            matcher {
+                declaredClass = "com.spotify.remoteconfig.internal.ProductStateProto"
+                returnType = "java.util.Map"
+            }
+        }.single()
+    }.getOrElse {
+        fingerprint {
+            returns("Ljava/util/Map;")
+            classMatcher { descriptor = "Lcom/spotify/remoteconfig/internal/ProductStateProto;" }
+        }
+    }
+}
+
+/**
+ * Resolves checkDeviceCapability query parameter builder for popular tracks on artist page.
+ */
+@get:SkipTest
+val buildQueryParametersMethod = findMethodDirect {
+    findMethod {
+        matcher {
+            usingStrings("trackRows", "device_type:tablet")
+        }
+    }.single()
+}
+
+/**
+ * Resolves Google Assistant context model JSON adapter.
+ */
+@get:SkipTest
+val contextFromJsonMethod = findMethodDirect {
+    runCatching {
+        findMethod {
+            matcher {
+                name = "fromJson"
+                declaredClass(".ContextJsonAdapter", StringMatchType.EndsWith)
+            }
+        }.single()
+    }.getOrElse {
+        fingerprint {
+            opcodes(
+                Opcode.INVOKE_STATIC,
+                Opcode.MOVE_RESULT_OBJECT,
+                Opcode.INVOKE_VIRTUAL,
+                Opcode.MOVE_RESULT_OBJECT,
+                Opcode.INVOKE_STATIC
+            )
+            methodMatcher {
+                name("fromJson")
+                declaredClass("voiceassistants.playermodels.ContextJsonAdapter", StringMatchType.EndsWith)
+            }
+        }
+    }
+}
+
+// endregion
