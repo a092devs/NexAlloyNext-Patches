@@ -5,16 +5,15 @@ automatically on every push to `main` for the version of the first `X.Y.Z` secti
 version has no release yet. The section matching the release tag becomes the release notes,
 falling back to generated commit notes when no section exists.
 
+## 3.2.8
+
+- `NexFusion` 3.2.8:
+  * Spotify: Reverted "Unlock Spotify Premium" patch.
+
 ## 3.2.7
 
 - `NexFusion` 3.2.7:
-  * Spotify: Added "Unlock Spotify Premium" patch with 4-layer anti-logout safety shield:
-    - **Playback**: Unlocks on-demand track selection, unforced shuffle, and unlimited skips via `ProductStateProto` client attribute emulation.
-    - **Dual-Sync & Detection Blocker**: Intercepts `spclient.wg.spotify.com` verification routes (`dual-sync`, `melody/v1/check`, `social-connect`) and returns synthetic 204 No Content responses to avoid server-side consistency flags.
-    - **Auth Token Cache & Replay**: Caches valid `access_token` responses and auto-replays on HTTP 401/403 challenges to prevent remote session termination.
-    - **Credential Lock**: Protects `SharedPreferences` session credentials (`token`, `session`, `auth`, `login`, `account`, `credential`) against client-side clearing routines.
-    - **Telemetry & Tracker Cloaking**: Suppresses outbound analytics, ad logic, and crash logs to `analytics.spotify.com`, `log.spotify.com`, and `crashdump.spotify.com`.
-    - **QoL**: Fixes popular tracks display on artist pages and strips voice assistant station prefixes (`spotify:station:`).
+  * Spotify: Added "Unlock Spotify Premium" patch (reverted in 3.2.8).
 
 ## 3.2.6
 
