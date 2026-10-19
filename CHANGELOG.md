@@ -5,6 +5,18 @@ automatically on every push to `main` for the version of the first `X.Y.Z` secti
 version has no release yet. The section matching the release tag becomes the release notes,
 falling back to generated commit notes when no section exists.
 
+## 3.2.6
+
+- `NexAlloy` & `NexFusion` 3.2.6:
+  * YouTube: Ported latest fixes and updates from Morphe `dev` branch:
+    - **Miniplayer**: Watch transition animation fix (prevents feed from jumping or rendering black when expanding/collapsing player) and "Play next/last in queue" from feeds fix.
+    - **Video Quality**: Added initial video quality and SABR stream constraint overrides to prevent video quality from dropping during playback.
+    - **Navigation Bar**: Added translucent navigation bar overrides to fix raised navigation bar and empty bottom gap.
+    - **Status Bar**: Added `Hide StatusBar` patch with explicit *"Fix status bar covering the top bars"* layout setting.
+    - **Video Codecs**: Modernized codec settings to unified `VideoCodecListPreference` (combining AVC / VP9) with Force HDR support.
+    - **Visual/Theme**: Light theme readability fixes for comments button page indicator dots and metadata panel text contrast.
+  * Submodules: Pinned `morphe-patches` and `morphe-patches-library` to latest remote heads.
+
 ## 3.2.5
 
 - `NexFusion` 3.2.5:
