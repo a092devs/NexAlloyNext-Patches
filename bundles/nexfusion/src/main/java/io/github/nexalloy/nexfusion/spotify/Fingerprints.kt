@@ -10,6 +10,7 @@ import io.github.nexalloy.morphe.findMethodDirect
 import io.github.nexalloy.morphe.findMethodListDirect
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.query.enums.StringMatchType
+import org.luckypray.dexkit.query.enums.UsingType
 import org.luckypray.dexkit.result.MethodData
 
 // region Ads
@@ -61,6 +62,26 @@ val homeSectionsGetters = findMethodListDirect {
 /** Getter of the sections list of the browse (search page) model. */
 val browseSectionsGetters = findMethodListDirect {
     sectionsGetters("browsita.v1.resolved.BrowseStructure")
+}
+
+/**
+ * Getter of the sections list of the now playing view scroll feed. The feed embeds a brand-ad
+ * card below the lyrics card.
+ *
+ * Unlike Home/Browse, `NpvScrollStructure` also has an `addSection(Section)` method that reads
+ * the backing `sections_` field, so the getter is pinned to the methods without parameters.
+ */
+val npvSectionsGetter = findMethodDirect {
+    findMethod {
+        matcher {
+            declaredClass("scrollsita.v1.NpvScrollStructure", StringMatchType.EndsWith)
+            addUsingField {
+                usingType = UsingType.Read
+                name = "sections_"
+            }
+            paramTypes(emptyList())
+        }
+    }.first { it.returnTypeName != "void" }
 }
 
 private fun DexKitBridge.pendragonRequests(requestClass: String) = findMethod {
@@ -209,6 +230,87 @@ val formatAndroidShareSheetUrlMethod = findMethodDirect {
             parameters("Lcom/spotify/share/social/sharedata/ShareData;", "Ljava/lang/String;")
         }
     }
+}
+
+// endregion
+
+// region Premium
+
+/**
+ * Getter of the account attributes map of the remote config product state. The map values are
+ * `AccountAttribute`s whose `value_` fields drive the playback restrictions and the Premium UI.
+ *
+ * The map itself is wrapped in `Collections.unmodifiableMap`, but the attribute objects are
+ * mutable, which is what the patch rewrites.
+ */
+val productStateAttributesGetter = findMethodDirect {
+    fingerprint {
+        returns("Ljava/util/Map;")
+        classMatcher { descriptor = "Lcom/spotify/remoteconfig/internal/ProductStateProto;" }
+    }
+}
+
+/**
+ * Assembles the query parameters of an artist page. The assembled string contains
+ * `checkDeviceCapability=`; asking for `trackRows` adds the popular tracks.
+ */
+val buildQueryParametersMethod = findMethodDirect {
+    findMethod {
+        matcher { usingStrings("trackRows", "device_type:tablet") }
+    }.single()
+}
+
+/**
+ * The Google Assistant player-context deserializer.
+ *
+ * Up to ~9.1.86 this was `…playermodels.ContextJsonAdapter.fromJson(JsonReader):Context`; since
+ * ~9.1.90 the class was renamed to `…playermodels.ContextSerializer` and the method to
+ * `deserialize`. Both return `com.spotify.player.model.Context`, which the hook post-processes
+ * to strip `spotify:station:` URIs. The old opcode matcher stays as a fallback for older builds.
+ */
+val assistantContextDeserializerMethod = findMethodDirect {
+    runCatching {
+        fingerprint {
+            returns("Lcom/spotify/player/model/Context;")
+            methodMatcher {
+                name = "deserialize"
+                declaredClass(
+                    "voiceassistants.playermodels.ContextSerializer", StringMatchType.EndsWith
+                )
+            }
+        }
+    }.getOrElse {
+        fingerprint {
+            opcodes(
+                Opcode.INVOKE_STATIC,
+                Opcode.MOVE_RESULT_OBJECT,
+                Opcode.INVOKE_VIRTUAL,
+                Opcode.MOVE_RESULT_OBJECT,
+                Opcode.INVOKE_STATIC,
+            )
+            methodMatcher {
+                name = "fromJson"
+                declaredClass(
+                    "voiceassistants.playermodels.ContextJsonAdapter", StringMatchType.EndsWith
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The generated builder of the player option overrides. Spotify forces shuffle when a voice
+ * assistant starts an album or a playlist; the hook clears the flag before the object is built.
+ */
+val playerOptionOverridesBuilderClass = findClassDirect {
+    findClass {
+        matcher {
+            className(
+                "com.spotify.player.model.command.options.AutoValue_PlayerOptionOverrides\$Builder",
+                StringMatchType.EndsWith,
+            )
+        }
+    }.single()
 }
 
 // endregion

@@ -9,11 +9,13 @@ import io.github.nexalloy.nexfusion.spotify.ads.HideVideoAds
 import io.github.nexalloy.nexfusion.spotify.ads.MuteAudioAds
 import io.github.nexalloy.nexfusion.spotify.layout.HidePremiumTab
 import io.github.nexalloy.nexfusion.spotify.misc.FixThirdPartyLaunchersWidgets
+import io.github.nexalloy.nexfusion.spotify.premium.UnlockPremium
 import io.github.nexalloy.nexfusion.spotify.privacy.SanitizeSharingLinks
 import io.github.nexalloy.nexfusion.spotify.theme.MaterialYouTheme
 import io.github.nexalloy.nexfusion.spotify.theme.RoundedCorners
 
 val SpotifyPatches = arrayOf(
+    UnlockPremium,
     MuteAudioAds,
     HideAdSections,
     HideAdViews,

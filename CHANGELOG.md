@@ -5,6 +5,14 @@ automatically on every push to `main` for the version of the first `X.Y.Z` secti
 version has no release yet. The section matching the release tag becomes the release notes,
 falling back to generated commit notes when no section exists.
 
+## 3.3.1
+
+- `NexFusion` 3.3.1:
+  * Spotify: Added "Unlock Spotify Premium" patch, ported from `yobreehs/yfimeF`/Femify: account attribute overrides unlock on-demand playback, unforced shuffle, unlimited skips and the Premium settings UI, and restore the popular tracks on artist pages. Every hook installs independently, so a moved anchor on a new Spotify version only disables that block. Ships disabled because Spotify restricts accounts that use modified clients (issue #3); enable it in NexAlloy explicitly.
+  * Spotify: "Hide ad sections" now also removes the embedded brand-ad card from the now playing view feed.
+  * Spotify: Added fingerprints for the product state, artist query parameters, Google Assistant context and now playing feed, validated against Spotify 9.1.90.2270 and 9.1.92.3058.
+  * NOTICE: Added attribution for the ReVanced/Femify premium material.
+
 ## 3.3.0
 
 - `NexFusion` 3.3.0:

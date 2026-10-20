@@ -189,5 +189,20 @@ patch — DexKit fingerprinting of AGSA's stream renderable list method via stre
 ("WithContent(sessionRepresentation=", "contentSlices=", "elementsRenderableData="),
 filtering sponsored feed items with "feedads" cluster tokens from the stream payload.
 ================================================================================
+ReVanced (revanced-patches) through sheerboy/Femify and yobreehs/yfimeF
+https://github.com/ReVanced/revanced-patches
+https://github.com/sheerboy/Femify
+https://github.com/yobreehs/yfimeF
+License: GPL-3.0
+Ported material: the Spotify "Unlock Spotify Premium" hook — the account attribute overrides of
+the remote config product state, the artist-page `trackRows` query parameter, the Google
+Assistant context station stripping and the forced-shuffle removal — together with the guarded
+per-hook installation pattern, re-implemented in
+bundles/nexfusion/src/main/java/io/github/nexalloy/nexfusion/spotify/premium/ and
+app/twoeno/extension/spotify/UnlockPremiumPatch.java. The now playing brand-ad section removal
+(app/twoeno/extension/spotify/HideNpvBrandAdsPatch.java) is the same upstream logic, wired into
+the "Hide ad sections" patch. The attribute table and the 9.1.90+ class renames were taken from
+the Femify fork family that ships these hooks for recent Spotify builds.
+================================================================================
 
 

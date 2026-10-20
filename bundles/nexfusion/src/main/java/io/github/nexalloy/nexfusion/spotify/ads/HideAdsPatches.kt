@@ -5,6 +5,7 @@ import android.media.session.MediaSession
 import app.twoeno.extension.spotify.BlockPopupAdsPatch
 import app.twoeno.extension.spotify.HideAdSectionsPatch
 import app.twoeno.extension.spotify.HideContextMenuUpsellsPatch
+import app.twoeno.extension.spotify.HideNpvBrandAdsPatch
 import app.twoeno.extension.spotify.HidePlayerAdsPatch
 import app.twoeno.extension.spotify.MuteAudioAdsPatch
 import de.robv.android.xposed.XC_MethodHook
@@ -17,6 +18,7 @@ import io.github.nexalloy.nexfusion.spotify.contextMenuViewModelClass
 import io.github.nexalloy.nexfusion.spotify.embeddedAdPlaylistPropertiesConstructor
 import io.github.nexalloy.nexfusion.spotify.homeSectionsGetters
 import io.github.nexalloy.nexfusion.spotify.npvPluginEntryConstructors
+import io.github.nexalloy.nexfusion.spotify.npvSectionsGetter
 import io.github.nexalloy.nexfusion.spotify.pendragonRequestMethods
 import io.github.nexalloy.nexfusion.spotify.premiumUpsellField
 import java.lang.reflect.Constructor
@@ -35,7 +37,7 @@ val MuteAudioAds = patch(
 
 val HideAdSections = patch(
     name = "Hide ad sections",
-    description = "Removes brand ad sections from the home and search page.",
+    description = "Removes brand ad sections from the home, search and now playing pages.",
 ) {
     val homeGetters = ::homeSectionsGetters.dexMethodList
     val browseGetters = ::browseSectionsGetters.dexMethodList
@@ -50,6 +52,18 @@ val HideAdSections = patch(
         it.hookMethod {
             after { param -> (param.result as? List<*>)?.let(HideAdSectionsPatch::removeBrowseSections) }
         }
+    }
+
+    // The now playing view feed is a separate structure. Older builds may not have it, so its
+    // absence must not fail the patch.
+    runCatching {
+        ::npvSectionsGetter.hookMethod {
+            after { param ->
+                (param.result as? List<*>)?.let(HideNpvBrandAdsPatch::removeNpvBrandAdSections)
+            }
+        }
+    }.onFailure {
+        PatcherLog.info(it) { "Now playing view feed not found, skipping its brand ad removal" }
     }
 }
 
