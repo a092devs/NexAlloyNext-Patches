@@ -216,6 +216,132 @@ val adBreakVideoFetches = findMethodListDirect {
  * before the literal; a build that names states any other way stops this finder rather than
  * letting it answer -1 for a sibling state too.
  */
+/**
+ * The four story-viewer bucket sources. Each takes the organic `ImmutableList` and returns it with
+ * its ad buckets spliced in; returning the input is what Facebook itself does when a source has
+ * nothing to add. Anchored on the unique literals upstream keeps.
+ */
+val inorganicClashStoryBuckets = findMethodListDirect { methodsHolding("handling_inorganic_clash") }
+val adBucketDataSourceStoryBuckets = findMethodListDirect { methodsHolding("uninsertedMainAdsQueue") }
+val adPaginatingStoryBuckets = findMethodListDirect {
+    methodsHolding("AdPaginatingBucketStaticInsertionDataSource.getBuckets")
+}
+val storyViewerMidCardBuckets = findMethodListDirect {
+    methodsHolding("StoryViewerMidCardDataSource.getBuckets")
+}
+
+/** The pre-EOF Reels row injector, which builds its own ShowcaseFeedUnit row. */
+val preEofReelsInjectors = findMethodListDirect { methodsHolding("PreEofIfuSectionAdapter") }
+
+/**
+ * The methods that fill a post's three-dot menu. Every post menu goes through the base of the
+ * video feed's menu helper; the override and the base share this signature, so all matching
+ * bodies are returned and each is hooked after it has run. The first two arguments are the
+ * Android menu and the view that opened it, which is where the downloader gets its Context.
+ */
+val postMenuFillers = findMethodListDirect {
+    val anchor = methodsUsingAll(listOf("VideoFeedStoryMenuHelper", "DOWNLOAD_VIDEO"))
+        .firstOrNull { method ->
+            method.returnTypeName == "void" &&
+                method.paramTypeNames.size >= 3 &&
+                method.paramTypeNames[0] == "android.view.Menu" &&
+                method.paramTypeNames[1] == "android.view.View" &&
+                method.paramTypeNames.last() == "com.facebook.video.common.playerorigin.PlayerOrigin"
+        }
+        ?: error("the video feed's post menu filler was not found")
+    // The helper overrides a base with the same obfuscated name and signature. Facebook routes
+    // different post menus through either body, so both are returned and both are hooked.
+    findMethod { matcher { name = anchor.name } }
+        .filter { method ->
+            method.returnTypeName == "void" &&
+                method.paramTypeNames == anchor.paramTypeNames
+        }
+        .distinctBy { it.descriptor }
+}
+
+/** The GraphQL getters the post model exposes for the downloader's attachment walk. */
+val storyAttachmentsGetter = findMethodDirect {
+    findMethod {
+        matcher {
+            declaredClass("com.facebook.graphql.model.GraphQLStory", StringMatchType.Equals, false)
+            usingNumbers(listOf("attachments".hashCode()))
+        }
+    }.filter {
+        it.paramTypeNames.isEmpty() &&
+            it.returnTypeName == "com.google.common.collect.ImmutableList"
+    }.distinctBy { it.descriptor }.singleOrNull()
+        ?: throw IllegalStateException("GraphQLStory's attachments getter was not found")
+}
+
+val storyAttachedStoryGetter = findMethodDirect {
+    findMethod {
+        matcher {
+            declaredClass("com.facebook.graphql.model.GraphQLStory", StringMatchType.Equals, false)
+            usingNumbers(listOf("attached_story".hashCode()))
+        }
+    }.filter {
+        it.paramTypeNames.isEmpty() &&
+            it.returnTypeName == "com.facebook.graphql.model.GraphQLStory"
+    }.distinctBy { it.descriptor }.singleOrNull()
+        ?: throw IllegalStateException("GraphQLStory's attached_story getter was not found")
+}
+
+val attachmentMediaGetter = findMethodDirect {
+    findMethod {
+        matcher {
+            declaredClass(
+                "com.facebook.graphql.model.GraphQLStoryAttachment",
+                StringMatchType.Equals,
+                false,
+            )
+            usingNumbers(listOf("media".hashCode()))
+        }
+    }.filter {
+        it.paramTypeNames.isEmpty() &&
+            it.returnTypeName == "com.facebook.graphql.model.GraphQLMedia"
+    }.distinctBy { it.descriptor }.singleOrNull()
+        ?: throw IllegalStateException("GraphQLStoryAttachment's media getter was not found")
+}
+
+val attachmentSubattachmentsGetter = findMethodDirect {
+    findMethod {
+        matcher {
+            declaredClass(
+                "com.facebook.graphql.model.GraphQLStoryAttachment",
+                StringMatchType.Equals,
+                false,
+            )
+            usingNumbers(listOf("subattachments".hashCode()))
+        }
+    }.filter {
+        it.paramTypeNames.isEmpty() &&
+            it.returnTypeName == "com.google.common.collect.ImmutableList"
+    }.distinctBy { it.descriptor }.singleOrNull()
+        ?: throw IllegalStateException("GraphQLStoryAttachment's subattachments getter was not found")
+}
+
+/**
+ * The boolean reads of a photo's `can_viewer_download` flag. The viewer asks it when it builds
+ * the photo menu and again when it decides whether to show the item; both are answered true while
+ * the downloader is on, so the item appears even when the poster turned saving off.
+ */
+val canViewerDownloadGates = findMethodListDirect {
+    findMethod {
+        matcher { usingNumbers(listOf("can_viewer_download".hashCode())) }
+    }.filter { it.returnTypeName == "boolean" }.distinctBy { it.descriptor }
+}
+
+/** The photo viewer's own Save photo action, which the patch wraps with the downloader's. */
+val savePhotoAction = findMethodDirect {
+    findMethod {
+        matcher { name = "newSavePhotoAction" }
+    }.filter {
+        it.paramTypeNames.size == 1 &&
+            it.returnTypeName == "android.view.MenuItem\$OnMenuItemClickListener"
+    }.distinctBy { it.descriptor }.singleOrNull()
+        ?: throw IllegalStateException("the photo viewer's newSavePhotoAction was not found")
+}
+
 val deferredCardState = findClassDirect {
     val nameMethod = findMethod {
         matcher {
@@ -230,4 +356,98 @@ val deferredCardState = findClassDirect {
     (maxOf(0, literal - 3) until literal).reversed().firstNotNullOfOrNull { index ->
         instructions[index].takeIf { it.opcodeEnum == Opcode.INSTANCE_OF }?.classRef
     } ?: throw IllegalStateException("no instance-of tests \"$DEFERRED_CARD_STATE\" before its literal")
+}
+
+/**
+ * The Reel "More" bottom sheet builder: void static method anchored on "fds_control_clear_mode",
+ * which adds setting rows (including Clear mode) to the sheet's List<Any>.
+ */
+val reelMoreSheetBuilder = findMethodDirect {
+    val matches = findMethod {
+        matcher { usingStrings(listOf("fds_control_clear_mode"), StringMatchType.Equals) }
+    }.filter { it.returnTypeName == "void" }.distinctBy { it.descriptor }
+    check(matches.size == 1) { "expected 1 reelMoreSheetBuilder, found ${matches.size}" }
+    matches.single()
+}
+
+/**
+ * The constructors of VideoPlayerParams, which hold the videoId and the VideoDataSource.
+ */
+val videoPlayerParamsConstructors = findMethodListDirect {
+    findMethod {
+        matcher {
+            declaredClass("com.facebook.video.engine.api.VideoPlayerParams", StringMatchType.Equals, false)
+            name = "<init>"
+        }
+    }.distinctBy { it.descriptor }
+}
+
+/**
+ * The story viewer's capability class (X.CsG on 583), which evaluates
+ * story capabilities like whether the story can be saved.
+ */
+val storyCapabilityClass = findClassDirect {
+    val callback = getClassData("Lcom/facebook/stories/viewer/ui/buckets/regular/topbar/menu/StoryViewerMoreButtonCallback;")
+        ?: error("StoryViewerMoreButtonCallback not found")
+    val csGName = callback.methods.asSequence()
+        .flatMap { it.instructions.asSequence() }
+        .mapNotNull { it.fieldRef }
+        .firstOrNull { it.typeName == "java.lang.Boolean" }
+        ?.declaredClassName
+        ?: error("Capability class with Boolean field not found in StoryViewerMoreButtonCallback")
+    findClass { matcher { className(csGName, StringMatchType.Equals) } }.distinctBy { it.name }.single()
+}
+
+val storyCapabilityConstructor = findMethodDirect {
+    val clazz = storyCapabilityClass()
+    findMethod {
+        matcher {
+            declaredClass(clazz.name, StringMatchType.Equals, false)
+            name = "<init>"
+        }
+    }.distinctBy { it.descriptor }.single()
+}
+
+/**
+ * The capability check method in CsG that computes whether the story can be saved.
+ * StoryViewerMoreButtonCallback's 2-param ImmutableList.Builder method (A0C on 583)
+ * calls it before adding the Save Story menu item.
+ */
+val storySaveCapabilityMethod = findMethodDirect {
+    val clazz = storyCapabilityClass()
+    val callback = getClassData("Lcom/facebook/stories/viewer/ui/buckets/regular/topbar/menu/StoryViewerMoreButtonCallback;")
+        ?: error("StoryViewerMoreButtonCallback not found")
+    val builderMethod = callback.methods.singleOrNull { method ->
+        method.paramTypeNames.size == 2 &&
+            method.paramTypeNames[1] == "com.google.common.collect.ImmutableList\$Builder" &&
+            method.instructions.any { it.methodRef?.declaredClassName == clazz.name }
+    } ?: error("Story menu builder method (A0C) not found in StoryViewerMoreButtonCallback")
+    val target = builderMethod.instructions.asSequence()
+        .mapNotNull { it.methodRef }
+        .firstOrNull { it.declaredClassName == clazz.name && it.returnTypeName == "boolean" && it.paramTypeNames.isEmpty() }
+        ?: error("Save capability method not found on ${clazz.name}")
+    findMethod {
+        matcher {
+            declaredClass(clazz.name, StringMatchType.Equals, false)
+            name = target.name
+            returnType = "boolean"
+            paramCount = 0
+        }
+    }.distinctBy { it.descriptor }.single()
+}
+
+/**
+ * The story save action method called when the user taps Save in the story more menu.
+ * Takes StoryCard as 1st parameter and references "PublishingTaskStatusUnknown" and "media_type".
+ */
+val storySaveAction = findMethodDirect {
+    val matches = findMethod {
+        matcher {
+            usingStrings(listOf("PublishingTaskStatusUnknown", "media_type"), StringMatchType.Contains)
+        }
+    }.filter { method ->
+        method.returnTypeName == "void" && method.paramTypeNames.firstOrNull() == "com.facebook.stories.model.StoryCard"
+    }.distinctBy { it.descriptor }
+    check(matches.size == 1) { "expected 1 storySaveAction, found ${matches.size}" }
+    matches.single()
 }

@@ -148,5 +148,4 @@ Bundles that port or adapt upstream code must record the upstream repository and
 license notices. Code derived from Morphe, ReVanced, Piko, or other GPL-3.0 projects remains
 GPL-3.0 and is credited in the repository README. A worked example is the `nexfusion` bundle,
 which lists every ported source, its license and the ported files in
-`bundles/nexfusion/src/main/java/io/github/nexalloy/nexfusion/NOTICE` and documents the
-cross-reference in `docs/installed-app-patch-audit.md` (Section 4).
+`bundles/nexfusion/src/main/java/io/github/nexalloy/nexfusion/NOTICE`.

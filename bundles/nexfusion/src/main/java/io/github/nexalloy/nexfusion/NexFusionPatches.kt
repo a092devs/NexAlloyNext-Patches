@@ -23,14 +23,22 @@ object NexFusionPatches : PatchBundle {
             appName = "Discord",
             packageName = "com.discord",
             patches = DiscordPatches,
-            targets = listOf(AppTarget("348.10")),
+            targets = listOf(
+                AppTarget("349.9 - Stable"),
+                AppTarget("349.9"),
+                AppTarget("348.10"),
+            ),
             appIconColor = 0x5865F2,
         ),
         AppPatchInfo(
             appName = "Facebook",
             packageName = "com.facebook.katana",
             patches = FacebookPatches,
-            targets = listOf(AppTarget("582.0.0.50.54"), AppTarget("581.0.0.45.54")),
+            targets = listOf(
+                AppTarget("583.0.0.39.55"),
+                AppTarget("582.0.0.50.54"),
+                AppTarget("581.0.0.45.54"),
+            ),
             appIconColor = 0x0866FF,
         ),
         AppPatchInfo(
@@ -38,6 +46,7 @@ object NexFusionPatches : PatchBundle {
             packageName = "com.instagram.android",
             patches = InstagramPatches,
             targets = listOf(
+                AppTarget("452.0.0.48.64"),
                 AppTarget("451.0.0.53.80"),
                 AppTarget("450.0.0.46.79"),
                 AppTarget("447.0.0.55.81"),

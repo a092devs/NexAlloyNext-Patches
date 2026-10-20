@@ -5,7 +5,6 @@ import io.github.nexalloy.AppTarget
 import io.github.nexalloy.Patch
 import io.github.nexalloy.PatchBundle
 import io.github.nexalloy.morphe.music.YTMusicPatches
-import io.github.nexalloy.morphe.reddit.RedditPatches
 import io.github.nexalloy.morphe.youtube.YouTubePatches
 import io.github.nexalloy.revanced.googlephotos.GooglePhotosPatches
 
@@ -22,7 +21,6 @@ object NexAlloyPatches : PatchBundle {
     override val apps = listOf(
         app("YouTube", "com.google.android.youtube", YouTubePatches, MorpheTargets.YOUTUBE, 0xFF0033),
         app("YT Music", "com.google.android.apps.youtube.music", YTMusicPatches, MorpheTargets.MUSIC, 0xFF0000),
-        app("Reddit", "com.reddit.frontpage", RedditPatches, MorpheTargets.REDDIT, 0xFF4500),
         app("Google Photos", "com.google.android.apps.photos", GooglePhotosPatches, appIconColor = 0x4285F4),
     )
 }

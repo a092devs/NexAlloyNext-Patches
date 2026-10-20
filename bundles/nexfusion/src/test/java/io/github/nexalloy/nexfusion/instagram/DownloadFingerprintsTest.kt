@@ -54,6 +54,24 @@ class DownloadFingerprintsTest {
             assertNotNull(positionField)
             println("Verified mediaPositionField: $positionField")
 
+            // Media getters the downloader reads, including the DASH manifest that carries a reel's audio track.
+            assertNotNull(mediaImageInfoGetter(dexkit))
+            assertNotNull(mediaVideoVersionsGetter(dexkit))
+            assertNotNull(mediaCarouselGetter(dexkit))
+            val dashManifestGetter = mediaDashManifestGetter(dexkit)
+            assertNotNull(dashManifestGetter)
+            println("Verified mediaDashManifestGetter: $dashManifestGetter")
+            assertNotNull(mediaUserGetter(dexkit))
+            assertNotNull(userUsernameGetter(dexkit))
+            assertNotNull(videoVersionWidthGetter(dexkit))
+            assertNotNull(videoVersionHeightGetter(dexkit))
+            assertNotNull(igDialogBuildMethod(dexkit))
+            assertNotNull(igDialogTitleField(dexkit))
+            assertNotNull(igDialogCancelableMethod(dexkit))
+            assertNotNull(igDialogCanceledOnTouchOutsideMethod(dexkit))
+            assertNotNull(igDialogNegativeButtonMethod(dexkit))
+            assertNotNull(igDialogMenuBottomCornersField(dexkit))
+
             // Non-download anchors used by the rest of the Instagram patch set.
             assertNotNull(typingStatusMethod(dexkit))
             println("Verified typingStatusMethod: ${typingStatusMethod(dexkit)}")

@@ -25,3 +25,6 @@ reports/
 
 # Local-only documentation — kept on disk, never published to GitHub
 docs/
+binaries/
+compat-binaries/
+*.apk

@@ -185,5 +185,8 @@ val RedditPatches = arrayOf(
     TransparentSystemNavBar,
     HideUpvoteScores,
     HideViewCounts,
+    HideAds,
+    SanitizeSharingLinks,
+    StartAsGuest,
 )
 

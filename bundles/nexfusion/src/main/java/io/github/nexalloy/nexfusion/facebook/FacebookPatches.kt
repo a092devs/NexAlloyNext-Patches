@@ -22,8 +22,8 @@ import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.util.Locale
 
-// Ported and adapted from SysAdminDoc/Hushfacebook (GPL-3.0), supporting Facebook 582.0.0.50.54
-// and 581.0.0.45.54.
+// Ported and adapted from SysAdminDoc/Hushfacebook (GPL-3.0), supporting Facebook 583.0.0.39.55,
+// 582.0.0.50.54 and 581.0.0.45.54.
 //
 // Upstream patches Facebook's dex at build time. This bundle installs runtime hooks instead: the
 // classes Facebook keeps their names for are loaded directly, and the classes Redex renames are
@@ -164,7 +164,9 @@ val HideSponsoredPosts = patch(
     // enum. On 583 the found method is the static body the single-add wrapper delegates to, so
     // the edge does not sit at the wrapper's argument position; the first argument that is an
     // edge is the one to read. Upstream hands both to its extension, which drops the SPONSORED
-    // and PROMOTION constants; this port reads the constant's name directly.
+    // and PROMOTION constants; this port reads the category's server value through its
+    // toString(), which is what the enum stores as `serverValue` (the constants themselves are
+    // Redex-renamed, so Enum.name would be an unstable A00-style name).
     val edgeClass = classLoader.loadClass("com.facebook.graphql.model.GraphQLFeedUnitEdge")
     val categoryClass = classLoader.loadClass("com.crossapp.graphql.facebook.enums.GraphQLFeedStoryCategory")
     val categoryGetter = edgeClass.declaredMethods.singleOrNull {
@@ -181,7 +183,7 @@ val HideSponsoredPosts = patch(
             }
             val edge = param.args.firstOrNull { edgeClass.isInstance(it) } ?: return@before
             val categoryName = runCatching {
-                (categoryGetter.invoke(edge) as? Enum<*>)?.name
+                categoryGetter.invoke(edge)?.toString()
             }.getOrNull() ?: return@before
             if (categoryName == "SPONSORED" || categoryName == "PROMOTION") {
                 // A refused edge is an outcome the feed already handles: it logs "Edge not added
@@ -495,18 +497,103 @@ private fun resolveRedirect(uri: Uri): Uri {
     return if (parsed.scheme == "http" || parsed.scheme == "https") parsed else uri
 }
 
+/**
+ * Removes the story viewer's ad cards. Upstream (Hushfacebook ads/sponsoredstories) returns each
+ * bucket source's own input list unchanged, which is what Facebook does when a source has nothing
+ * to contribute. The four sources are independent, so each is installed on its own and the ones a
+ * build still ships keep working when another moved.
+ */
+val HideSponsoredStories = patch(
+    name = "Hide sponsored stories",
+    description = "Removes ad cards from the story viewer, so swiping through stories shows only what people posted.",
+) {
+    val immutableList = "com.google.common.collect.ImmutableList"
+    var installed = 0
+    fun install(source: String, methods: List<DexMethod>) {
+        for (dex in methods) {
+            val method = runCatching { dex.toMethod() }.getOrNull() ?: continue
+            if (method.returnType.name != immutableList) continue
+            val listIndex = method.parameterTypes.indexOfLast { it.name == immutableList }
+            if (listIndex < 0) continue
+            dex.hookMethod {
+                before { param -> param.result = param.args[listIndex] }
+            }
+            installed++
+            PatcherLog.info {
+                "NexFusion: holding back Facebook story ads in $source " +
+                    "${method.declaringClass.name}->${method.name}"
+            }
+        }
+    }
+    install("clash resolver", ::inorganicClashStoryBuckets.dexMethodList)
+    install("ad bucket source", ::adBucketDataSourceStoryBuckets.dexMethodList)
+    install("paginating source", ::adPaginatingStoryBuckets.dexMethodList)
+    install("mid-card source", ::storyViewerMidCardBuckets.dexMethodList)
+    check(installed > 0) { "Hide sponsored stories: none of the four story bucket sources was found" }
+}
+
+/**
+ * Removes the feed's rows of Reels. Upstream files them under the GraphQLFeedStoryCategory names
+ * below and also hooks the pre-EOF injector, which builds a Reels row without passing the feed
+ * funnel. Both paths are covered here; a Reel a friend posts is an ordinary post and stays.
+ */
+val HideFeedReels = patch(
+    name = "Hide Reels in the feed",
+    description = "Removes the rows of Reels between posts and the Reels added where the feed ends. " +
+        "A Reel a friend posts stays.",
+    use = false,
+) {
+    val edgeClass = classLoader.loadClass("com.facebook.graphql.model.GraphQLFeedUnitEdge")
+    val categoryClass = classLoader.loadClass("com.crossapp.graphql.facebook.enums.GraphQLFeedStoryCategory")
+    val categoryGetter = edgeClass.declaredMethods.singleOrNull {
+        it.parameterTypes.isEmpty() && it.returnType == categoryClass
+    } ?: throw IllegalStateException("Hide Reels in the feed: the edge's story category getter was not found")
+    categoryGetter.isAccessible = true
+    val reelsCategories = setOf("FB_SHORTS", "FB_SHORTS_FALLBACK", "END_OF_FEED_REELS")
+    var installed = 0
+
+    ::feedFunnel.hookMethod {
+        before { param ->
+            val edge = param.args.firstOrNull { edgeClass.isInstance(it) } ?: return@before
+            val categoryName = runCatching {
+                categoryGetter.invoke(edge)?.toString()
+            }.getOrNull() ?: return@before
+            if (categoryName in reelsCategories) {
+                param.result = false
+            }
+        }
+    }
+    installed++
+
+    for (dex in ::preEofReelsInjectors.dexMethodList) {
+        val method = runCatching { dex.toMethod() }.getOrNull() ?: continue
+        if (!method.name.startsWith("injectPreEofIfuEdge\$")) continue
+        if (method.parameterTypes.isNotEmpty() || method.returnType != Void.TYPE) continue
+        dex.hookMethod { before { param -> param.result = null } }
+        installed++
+        PatcherLog.info {
+            "NexFusion: skipping the pre-EOF Reels row in ${method.declaringClass.name}->${method.name}"
+        }
+    }
+
+    check(installed > 1) { "Hide Reels in the feed: the pre-EOF Reels injector was not found" }
+    PatcherLog.info { "NexFusion: Facebook feed Reels filter installed" }
+}
+
 val FacebookPatches = arrayOf(
     AllowScreenshots,
     BlockScreenshotDetection,
     HideSponsoredPosts,
+    HideSponsoredStories,
     HideSponsoredReels,
+    HideFeedReels,
     BlockTelemetry,
     OpenLinksExternally,
+    DownloadFacebookMedia,
 )
-// "Hide marketplace ads" and "Download any media" are not registered: their upstream
-// implementations (Hushfacebook ads/sponsoredmarketplace and downloads) resolve tens of anchors
-// each and are not portable yet. They were previously log-only or class-name-only stubs, which
-// reported success without hooking anything; see the audit report for the porting backlog.
+// "Hide marketplace ads" is not registered: its upstream implementation resolves tens of anchors
+// and is not portable yet. It was previously a log-only stub, which reported success without
+// hooking anything; see the audit report for the porting backlog.
 
 /** Matches the Window flag setters this port clears the secure bit from. */
 private fun Method.matchesWindowFlagsMethod(): Boolean = when (name) {

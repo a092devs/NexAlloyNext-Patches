@@ -5,6 +5,21 @@ automatically on every push to `main` for the version of the first `X.Y.Z` secti
 version has no release yet. The section matching the release tag becomes the release notes,
 falling back to generated commit notes when no section exists.
 
+## 3.3.8
+
+- `NexFusion` 3.3.8:
+  * Facebook: Full media download implementation for Facebook 583.0.0.39.55:
+    - Photo Viewer: Unlocked native "Save to phone" action with high-resolution JPEG extraction.
+    - Reels: Integrated native one-tap "Download reel" and "Download audio" controls directly into the Reel controls sheet using authentic Facebook FDS download glyphs (`X.1Uf.A8L`), supporting progressive and DASH track extraction.
+    - Stories: Unlocked native story save capability across all stories.
+    - Post Menus: Added theme-aware media download actions to post overflow sheets.
+    - Privacy: Sponsored feed story filtering via server value, sponsored reel suppression, and ad telemetry blocking.
+  * Reddit: Consolidated Reddit into NexFusion. Added "Hide Reddit ads", "Sanitize Reddit sharing links" and "Start Reddit as guest" alongside existing Reddit patches, removing dual-bundle duplication.
+  * Instagram: Added support for Instagram 452.0.0.48.64 and verified sheet-menu anchors. Added DASH manifest test suite.
+  * Discord: Added support for Discord 349.9; all 135 privacy targets resolve against the installed APK.
+- `NexAlloy` 1.0.10:
+  * Reddit: Removed from this bundle; all Reddit patches now live exclusively in NexFusion.
+
 ## 3.3.3
 
 - `NexFusion` 3.3.3:
