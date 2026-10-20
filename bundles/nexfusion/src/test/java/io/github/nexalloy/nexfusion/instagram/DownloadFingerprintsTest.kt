@@ -33,6 +33,9 @@ class DownloadFingerprintsTest {
             val builder = sheetMenuBuilderClass(dexkit)
             assertNotNull(builder)
             println("Verified sheetMenuBuilderClass: ${builder.name}")
+            val addItem = sheetMenuAddItemMethod(dexkit)
+            assertNotNull(addItem)
+            println("Verified sheetMenuAddItemMethod: $addItem")
             val storyLabels = storyMenuLabelsMethod(dexkit)
             assertNotNull(storyLabels)
             println("Verified storyMenuLabelsMethod: $storyLabels")
@@ -47,6 +50,9 @@ class DownloadFingerprintsTest {
             assertNotNull(highlightMenuAddMethod(dexkit))
             assertNotNull(storyHeaderBinderMethod(dexkit))
             println("Verified storyHeaderBinderMethod: ${storyHeaderBinderMethod(dexkit)}")
+            val positionField = mediaPositionField(dexkit)
+            assertNotNull(positionField)
+            println("Verified mediaPositionField: $positionField")
 
             // Non-download anchors used by the rest of the Instagram patch set.
             assertNotNull(typingStatusMethod(dexkit))

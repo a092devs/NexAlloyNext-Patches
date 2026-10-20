@@ -5,6 +5,12 @@ automatically on every push to `main` for the version of the first `X.Y.Z` secti
 version has no release yet. The section matching the release tag becomes the release notes,
 falling back to generated commit notes when no section exists.
 
+## 3.3.3
+
+- `NexFusion` 3.3.3:
+  * Instagram: Fixed the remaining Instagram 452 runtime failures. The sheet-menu row adder now accepts 451's five-parameter shape and 452's four-parameter shape, and the carousel position fingerprint follows 452's `List.get` decode. Download options install in the reels and feed sheets again, and carousel downloads use the item on screen.
+  * Instagram: Fingerprint tests now assert the sheet-menu row adder and carousel position field for every APK in `binaries/`.
+
 ## 3.3.2
 
 - `NexFusion` 3.3.2:

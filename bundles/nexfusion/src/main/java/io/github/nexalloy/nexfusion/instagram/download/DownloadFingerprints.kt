@@ -156,6 +156,40 @@ val sheetMenuBuilderClass = findClassDirect {
 }
 
 /**
+ * The method of the sheet builder that adds a simple label-and-icon row.
+ *
+ * 451 uses `(Context, OnClickListener, String, int, boolean)`. 452 dropped the boolean and has three
+ * `(Context, OnClickListener, String, int)` overloads, so the one the sheet menus call most is the row
+ * adder; the other two are convenience overloads that forward to the full multi-line method.
+ */
+val sheetMenuAddItemMethod = findMethodDirect {
+    val builder = sheetMenuBuilderClass().name
+    val candidates = findMethod {
+        matcher {
+            declaredClass(builder)
+            returnType = "void"
+        }
+    }
+    val simpleParameters = listOf(
+        "android.content.Context",
+        "android.view.View\$OnClickListener",
+        "java.lang.String",
+        "int",
+    )
+    val withBoolean = candidates.singleOrNull { it.paramTypeNames == simpleParameters + "boolean" }
+    if (withBoolean != null) {
+        withBoolean
+    } else {
+        val menuReferences = sheetMenuMethods().flatMap { method ->
+            method.instructions.mapNotNull { it.methodRef }
+        }
+        candidates.filter { it.paramTypeNames == simpleParameters }
+            .maxByOrNull { candidate -> menuReferences.count { it.descriptor == candidate.descriptor } }
+            ?: error("Sheet menu add-item method not found")
+    }
+}
+
+/**
  * The labels of the menu of other people's stories, built by the "ReelOptionsOverflowHelper". Like Piko, the
  * download label is added there.
  */
@@ -294,16 +328,30 @@ val highlightMenuAddMethod = findMethodDirect {
  * The carousel position of a post, the int field of the post state read by the getter of `EditMediaInfoFragment`
  * returning the current media, like Piko's decoder:
  * `iget-object state; if-eqz; iget position, state; ...; invoke-static (List, int)Media`.
+ *
+ * 452 reads `List.get(position)` and converts the element separately instead of calling the static
+ * `(List, int) -> Media` helper, so either tail is accepted once the state/position pattern matches.
  */
 val mediaPositionField = findFieldDirect {
     fun MethodData.positionField(): FieldData? {
-        val instructions = instructions.take(10)
+        val instructions = instructions.take(20)
         if (instructions.size < 10 || instructions[1].opcodeEnum != Opcode.IF_EQZ) return null
         val state = instructions[0].takeIf { it.opcodeEnum == Opcode.IGET_OBJECT }?.fieldRef ?: return null
         val position = instructions[2].takeIf { it.opcodeEnum == Opcode.IGET }?.fieldRef ?: return null
-        val media = instructions[9].takeIf { it.opcodeEnum == Opcode.INVOKE_STATIC }?.methodRef ?: return null
         if (position.declaredClassName != state.typeName || position.typeName != "int") return null
-        if (media.paramTypeNames != listOf("java.util.List", "int") || media.returnTypeName != MEDIA_CLASS) return null
+
+        val staticMedia = instructions[9].takeIf { it.opcodeEnum == Opcode.INVOKE_STATIC }?.methodRef
+        val hasStaticMedia = staticMedia != null &&
+            staticMedia.paramTypeNames == listOf("java.util.List", "int") &&
+            staticMedia.returnTypeName == MEDIA_CLASS
+        val hasListGet = instructions.any { instruction ->
+            instruction.opcodeEnum == Opcode.INVOKE_INTERFACE &&
+                instruction.methodRef?.declaredClassName == "java.util.List" &&
+                instruction.methodRef?.name == "get" &&
+                instruction.methodRef?.paramTypeNames == listOf("int")
+        }
+        if (!hasStaticMedia && !hasListGet) return null
+
         return position
     }
     findMethod {

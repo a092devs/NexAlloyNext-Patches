@@ -913,15 +913,8 @@ val DownloadMedia = patch(
     // Like Piko's reels button, the item is added to the sheet builder right after the menu creates it.
     menus["sheet menus"] = runCatching {
         val builderClass = ::sheetMenuBuilderClass.clazz
-        // addItem(Context, OnClickListener, String label, int icon, boolean), what Piko's reels button calls.
-        val addItem = builderClass.declaredMethods.single { method ->
-            !Modifier.isStatic(method.modifiers) && method.parameterTypes.contentEquals(
-                arrayOf(
-                    Context::class.java, View.OnClickListener::class.java, String::class.java,
-                    Int::class.java, Boolean::class.java,
-                )
-            )
-        }.apply { isAccessible = true }
+        // A simple label-and-icon row. 451 adds a trailing boolean; 452 has a four-parameter overload.
+        val addItem = ::sheetMenuAddItemMethod.method.apply { isAccessible = true }
 
         val handledBuilders: MutableSet<Any> = Collections.synchronizedSet(Collections.newSetFromMap(WeakHashMap()))
         val addDownload: HookDsl<IScopedHookCallback>.() -> Unit = {
@@ -942,7 +935,9 @@ val DownloadMedia = patch(
                         log("tapped in $module")
                         downloadMedia(activity, media, owners)
                     }
-                    addItem.invoke(param.thisObject, activity, onClick, DOWNLOAD_LABEL, icon, false)
+                    val itemArguments = mutableListOf<Any?>(activity, onClick, DOWNLOAD_LABEL, icon)
+                    if (addItem.parameterCount == 5) itemArguments += false
+                    addItem.invoke(param.thisObject, *itemArguments.toTypedArray())
                     log("added to $module")
                 } catch (e: Exception) {
                     PatcherLog.error(e) { "Could not add the download option to $module" }
