@@ -5,6 +5,13 @@ automatically on every push to `main` for the version of the first `X.Y.Z` secti
 version has no release yet. The section matching the release tag becomes the release notes,
 falling back to generated commit notes when no section exists.
 
+## 3.3.2
+
+- `NexFusion` 3.3.2:
+  * Instagram: Verified every patch anchor against Instagram 452.0.0.48.64. The story menu row and highlight menu builder now resolve their classes from the menus that build them, so 452's extra row parameters and wrapper builder no longer break downloads.
+  * Instagram: Fingerprint coverage now runs against every APK in `binaries/` and also asserts the Tigon, story viewer and in-app browser anchors.
+  * Gboard: Restored the Material 3 "Advanced settings" menu on Gboard 18.4.1. The hook follows the `PreferenceHeaderFragment` hierarchy instead of the removed obfuscated method names, injects the entry at the bottom of settings, and cleans up the "Rate us" / "Help & feedback" rows again.
+
 ## 3.3.1
 
 - `NexFusion` 3.3.1:

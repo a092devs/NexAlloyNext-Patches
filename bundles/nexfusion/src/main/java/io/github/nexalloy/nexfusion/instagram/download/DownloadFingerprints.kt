@@ -183,26 +183,28 @@ val storyMenuSheetMethod = findMethodDirect {
 }
 
 /**
- * A row of the story menu sheet, created with
- * `(?, ImageUrl, ?, Integer, String title, String subtitle, String, Function0 onClick, int icon, boolean...)`.
+ * A row of the story menu sheet. Instagram 451 creates it with
+ * `(?, ImageUrl, ?, Integer, String title, String subtitle, String, Function0 onClick, int icon, boolean...)`,
+ * and 452 adds two `Integer` values before the strings. The row class is the one the sheet builds, so its
+ * constructor is resolved from the sheet method instead of pinning a parameter list that changes between
+ * releases.
  */
 val storyMenuRowConstructor = findMethodDirect {
-    findMethod {
-        matcher {
-            name = "<init>"
-            paramTypes(
-                null, "com.instagram.common.typedurl.ImageUrl", null, "java.lang.Integer", "java.lang.String",
-                "java.lang.String", "java.lang.String", "kotlin.jvm.functions.Function0", "int",
-                "boolean", "boolean", "boolean", "boolean",
-            )
-        }
-    }.firstOrNull() ?: findMethod {
-        matcher {
-            name = "<init>"
-            paramTypes(
-                null, "com.instagram.common.typedurl.ImageUrl", null, "java.lang.Integer", "java.lang.String",
-                "java.lang.String", "java.lang.String", "kotlin.jvm.functions.Function0", "int", "boolean", "boolean",
-            )
+    val rowClasses = storyMenuSheetMethod().instructions
+        .mapNotNull { it.classRef?.name }
+        .distinct()
+
+    rowClasses.mapNotNull { className ->
+        findMethod {
+            matcher {
+                declaredClass(className)
+                this.name = "<init>"
+            }
+        }.firstOrNull { constructor ->
+            val params = constructor.paramTypeNames
+            params.getOrNull(1) == "com.instagram.common.typedurl.ImageUrl" &&
+                "kotlin.jvm.functions.Function0" in params &&
+                params.count { it == "java.lang.String" } >= 2
         }
     }.single()
 }
@@ -251,12 +253,27 @@ val highlightMenuMethod = findMethodDirect {
 }
 
 /**
- * The dialog builder created right after the module name of the highlight menu.
+ * The dialog builder the highlight menu adds its items to. 451 builds it right after the module
+ * name, while 452 creates a lambda first and receives the builder from a helper, so the class is
+ * resolved as the one whose `(String, View.OnClickListener)` add method the menu calls the most.
  */
 val highlightMenuBuilderClass = findClassDirect {
-    val instructions = highlightMenuMethod().instructions
-    val moduleIndex = instructions.indexOfFirst { it.string == "HighlightsTrayDialogHelper" }
-    instructions.drop(moduleIndex + 1).first { it.opcodeEnum == Opcode.NEW_INSTANCE }.classRef!!
+    val builder = highlightMenuMethod().instructions
+        .mapNotNull { it.methodRef }
+        .filter {
+            it.returnTypeName == "void" &&
+                it.paramTypeNames == listOf("java.lang.String", "android.view.View\$OnClickListener")
+        }
+        .groupBy { it.declaredClassName }
+        .maxByOrNull { it.value.size }
+        ?.key
+        ?: error("Highlight menu builder not found")
+
+    findClass {
+        matcher {
+            className(builder)
+        }
+    }.single()
 }
 
 /**

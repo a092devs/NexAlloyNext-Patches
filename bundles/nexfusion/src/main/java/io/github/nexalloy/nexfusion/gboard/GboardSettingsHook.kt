@@ -3,28 +3,40 @@ package io.github.nexalloy.nexfusion.gboard
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.util.Log
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
-import de.robv.android.xposed.XposedHelpers
-import java.lang.reflect.Proxy
+import java.lang.reflect.Method
+import java.lang.reflect.Modifier
 
 /**
  * Injects "Advanced settings" into Gboard's main settings menu and removes promotional entries.
  *
- * Targets:
- * - `com.google.android.libraries.inputmethod.preferencewidgets.PreferenceHeaderFragment`
- * - Preference hierarchy cleanup ("Rate Gboard" / "Help & feedback")
- * - Dynamic preference injection with Material 3 sparkle branding
+ * Gboard obfuscates the preference classes per release. The class `PreferenceHeaderFragment` is kept, and
+ * `CommonPreferenceFragment` is still in front of it, so the fragment hierarchy is followed from that name
+ * instead of pinning the reshuffled method names. The current build (18.4.1) maps the interesting members
+ * as follows, verified against its dex:
+ *
+ * - `CommonPreferenceFragment.f(Bundle)` — onCreate, after which the preference screen exists.
+ * - `PreferenceFragmentCompat.n()` — getPreferenceScreen.
+ * - `PreferenceFragmentCompat.aA(Preference)` — onPreferenceTreeClick.
+ * - `PreferenceGroup.an(Preference)` — addPreference, `ao` — removePreference, `k()` — count, `o(int)`,
+ *   `l(CharSequence)` — findPreference.
+ * - `androidx.preference.Preference` — `P(String)` setKey, `V(CharSequence)` setTitle, `Q(int)` setOrder,
+ *   `N(Drawable)` setIcon. The backing fields are `r`, `q`, `p` and `c`.
+ *
+ * The hook is deliberately tolerant: every step is guarded, and injection is idempotent, so a partially
+ * changed build degrades to a missing entry instead of crashing Gboard.
  */
 object GboardSettingsHook {
 
     private const val TAG = "NexAlloy"
     private const val ADVANCED_SETTINGS_KEY = "gboard_patches_entry"
+    private const val ADVANCED_SETTINGS_TITLE = "Advanced settings"
+    private const val PREFERENCE_SCREEN_CLASS = "androidx.preference.PreferenceScreen"
 
     fun install(classLoader: ClassLoader) {
         val headerFragmentClass = runCatching {
@@ -35,206 +47,176 @@ object GboardSettingsHook {
             classLoader.loadClass("com.google.android.libraries.inputmethod.preferencewidgets.CommonPreferenceFragment")
         }.getOrNull()
 
-        val prefFragmentCompatClass = runCatching {
-            classLoader.loadClass("ebw")
-        }.getOrNull() ?: runCatching {
-            classLoader.loadClass("androidx.preference.PreferenceFragmentCompat")
-        }.getOrNull()
-
-        if (headerFragmentClass == null && commonFragmentClass == null && prefFragmentCompatClass == null) {
-            Log.w(TAG, "GboardSettingsHook: Neither PreferenceHeaderFragment nor CommonPreferenceFragment found")
+        val anchor = headerFragmentClass ?: commonFragmentClass
+        if (anchor == null) {
+            Log.w(TAG, "GboardSettingsHook: neither PreferenceHeaderFragment nor CommonPreferenceFragment found")
             return
+        }
+
+        val hierarchy = generateSequence(anchor) { it.superclass }
+            .takeWhile { it != Any::class.java }
+            .toList()
+
+        // Stop at the class implementing the androidx preference fragment, so framework fragment methods are
+        // not hooked for every Gboard screen.
+        val preferenceBaseIndex = hierarchy.indexOfFirst { clazz ->
+            clazz.declaredMethods.any { method ->
+                method.parameterCount == 0 && method.returnType.name == PREFERENCE_SCREEN_CLASS
+            }
+        }
+        val hookClasses = if (preferenceBaseIndex >= 0) {
+            hierarchy.take(preferenceBaseIndex + 1)
+        } else {
+            hierarchy.take(4)
         }
 
         val injectionHook = object : XC_MethodHook() {
             override fun afterHookedMethod(param: MethodHookParam) {
                 val fragment = param.thisObject ?: return
+                if (!fragment.javaClass.name.contains("PreferenceHeaderFragment")) return
+
                 val context = resolveContext(fragment)
                     ?: (param.args.firstOrNull { it is Context } as? Context)
                     ?: (param.args.firstOrNull { it is View } as? View)?.context
                     ?: return
 
-                val explicitGroup = param.args.firstOrNull {
-                    it != null && it.javaClass.name.contains("PreferenceGroup")
+                val explicitGroup = param.args.firstOrNull { arg ->
+                    arg != null && arg.javaClass.name == PREFERENCE_SCREEN_CLASS
                 }
 
-                injectAdvancedSettingsPreference(fragment, context, classLoader, explicitGroup)
-            }
-        }
-
-        // 1. Hook methods on PreferenceHeaderFragment
-        if (headerFragmentClass != null) {
-            for (methodName in listOf("aE", "aK", "b", "aL")) {
                 runCatching {
-                    val methods = headerFragmentClass.declaredMethods.filter { it.name == methodName }
-                    for (m in methods) {
-                        XposedBridge.hookMethod(m, injectionHook)
-                    }
+                    injectAdvancedSettingsPreference(fragment, context, classLoader, explicitGroup)
+                }.onFailure { error ->
+                    Log.w(TAG, "NexFusion: failed to inject the Advanced settings preference", error)
                 }
             }
         }
 
-        // 2. Hook methods on CommonPreferenceFragment
-        if (commonFragmentClass != null) {
-            for (methodName in listOf("ao", "bb")) {
+        var injectionHooks = 0
+        for (clazz in hookClasses) {
+            for (method in clazz.declaredMethods) {
+                if (method.returnType != Void.TYPE || Modifier.isAbstract(method.modifiers)) continue
+                if (!isLifecycleCandidate(method.parameterTypes)) continue
+
                 runCatching {
-                    val methods = commonFragmentClass.declaredMethods.filter { it.name == methodName }
-                    for (m in methods) {
-                        XposedBridge.hookMethod(m, injectionHook)
-                    }
+                    XposedBridge.hookMethod(method, injectionHook)
+                    injectionHooks++
+                }.onFailure {
+                    Log.w(TAG, "NexFusion: could not hook ${clazz.name}.${method.name}", it)
                 }
             }
         }
 
-        // 3. Hook methods on PreferenceFragmentCompat (ebw)
-        if (prefFragmentCompatClass != null) {
-            for (methodName in listOf("az", "setPreferenceScreen")) {
-                runCatching {
-                    val methods = prefFragmentCompatClass.declaredMethods.filter { it.name == methodName }
-                    for (m in methods) {
-                        XposedBridge.hookMethod(m, injectionHook)
-                    }
-                }
-            }
-        }
-
-        // 4. Hook preference clicks on the fragment hierarchy to show the Advanced Settings dialog
         val clickHook = object : XC_MethodHook() {
             override fun beforeHookedMethod(param: MethodHookParam) {
-                val pref = param.args.getOrNull(0) ?: return
-                val key = getPreferenceKey(pref)
-                val title = getPreferenceTitle(pref)
-                if (key == ADVANCED_SETTINGS_KEY || title.contains("Advanced settings", ignoreCase = true)) {
-                    Log.i(TAG, "NexFusion: Intercepted click on Advanced settings preference!")
-                    val ctx = resolveContext(param.thisObject)
-                        ?: resolveContext(pref)
-                    val act = resolveActivity(ctx)
-                    if (act != null) {
-                        Log.i(TAG, "NexFusion: Showing Advanced settings dialog on $act")
-                        act.runOnUiThread {
-                            GboardSettingsDialog.show(act)
-                        }
-                    } else {
-                        Log.w(TAG, "NexFusion: Could not resolve Activity from $ctx / ${param.thisObject}")
+                val preference = param.args.getOrNull(0) ?: return
+                val key = getPreferenceKey(preference)
+                val title = getPreferenceTitle(preference)
+                if (key != ADVANCED_SETTINGS_KEY && !title.contains(ADVANCED_SETTINGS_TITLE, ignoreCase = true)) {
+                    return
+                }
+
+                Log.i(TAG, "NexFusion: intercepted the Advanced settings click")
+                val context = resolveContext(param.thisObject) ?: resolveContext(preference)
+                val activity = resolveActivity(context)
+                if (activity != null) {
+                    activity.runOnUiThread {
+                        GboardSettingsDialog.show(activity)
                     }
-                    if (param.method is java.lang.reflect.Method && (param.method as java.lang.reflect.Method).returnType == java.lang.Boolean.TYPE) {
-                        param.result = true
-                    } else {
-                        param.result = null
-                    }
+                } else {
+                    Log.w(TAG, "NexFusion: could not resolve an Activity for the Advanced settings dialog")
+                }
+
+                if (param.method is Method && (param.method as Method).returnType == java.lang.Boolean.TYPE) {
+                    param.result = true
                 }
             }
         }
 
-        val classesToHookClicks = listOfNotNull(headerFragmentClass, commonFragmentClass, prefFragmentCompatClass)
-        for (clazz in classesToHookClicks) {
-            runCatching {
-                val methods = clazz.declaredMethods.filter {
-                    (it.name == "aA" || it.name == "p" || it.name == "onPreferenceTreeClick" ||
-                        (it.parameterTypes.size == 1 && it.parameterTypes[0].name.contains("Preference") && it.returnType == java.lang.Boolean.TYPE)) &&
-                        it.parameterTypes.size == 1 &&
-                        it.parameterTypes[0].name.contains("Preference")
-                }
-                for (m in methods) {
-                    XposedBridge.hookMethod(m, clickHook)
-                    Log.i(TAG, "NexFusion: Hooked click method ${clazz.name}.${m.name}")
+        var clickHooks = 0
+        for (clazz in hookClasses) {
+            for (method in clazz.declaredMethods) {
+                if (method.returnType != java.lang.Boolean.TYPE || method.parameterTypes.size != 1) continue
+                if (!method.parameterTypes[0].name.contains("Preference")) continue
+
+                runCatching {
+                    XposedBridge.hookMethod(method, clickHook)
+                    clickHooks++
+                    Log.i(TAG, "NexFusion: hooked ${clazz.name}.${method.name} for preference clicks")
+                }.onFailure {
+                    Log.w(TAG, "NexFusion: could not hook ${clazz.name}.${method.name}", it)
                 }
             }
         }
 
-        Log.i(TAG, "NexFusion: GboardSettingsHook installed successfully on preference fragment hierarchy")
+        Log.i(
+            TAG,
+            "NexFusion: GboardSettingsHook installed ($injectionHooks injection hooks, $clickHooks click hooks) " +
+                "over ${hookClasses.joinToString { it.name }}",
+        )
+    }
+
+    private fun isLifecycleCandidate(parameterTypes: Array<Class<*>>): Boolean = when {
+        parameterTypes.isEmpty() -> true
+        parameterTypes.size == 1 && parameterTypes[0] == Bundle::class.java -> true
+        parameterTypes.size == 1 && parameterTypes[0].name == PREFERENCE_SCREEN_CLASS -> true
+        parameterTypes.size == 2 &&
+            parameterTypes[0] == View::class.java &&
+            parameterTypes[1] == Bundle::class.java -> true
+        else -> false
     }
 
     private fun injectAdvancedSettingsPreference(
         fragment: Any,
         context: Context,
         classLoader: ClassLoader,
-        explicitGroup: Any? = null
+        explicitGroup: Any? = null,
     ) {
-        try {
-            val screen = explicitGroup ?: getPreferenceScreen(fragment) ?: return
-            removeBloatPreferences(screen)
+        if (!fragment.javaClass.name.contains("PreferenceHeaderFragment")) return
 
-            // Only add the "Advanced settings" entry to the top-level settings header screen
-            if (!fragment.javaClass.name.contains("PreferenceHeaderFragment")) {
-                return
-            }
+        val screen = explicitGroup ?: getPreferenceScreen(fragment) ?: return
+        removeBloatPreferences(screen)
 
-            if (findPreference(screen, ADVANCED_SETTINGS_KEY) != null) {
-                return
-            }
+        if (findPreference(screen, ADVANCED_SETTINGS_KEY) != null) return
 
-            val prefClass = runCatching { classLoader.loadClass("androidx.preference.Preference") }.getOrNull() ?: return
-            val pref = prefClass.getConstructor(Context::class.java).newInstance(context)
+        val preferenceClass = runCatching {
+            classLoader.loadClass("androidx.preference.Preference")
+        }.getOrNull() ?: return
 
-            setPreferenceKey(pref, ADVANCED_SETTINGS_KEY)
-            setPreferenceTitle(pref, "Advanced settings")
-            setPreferenceOrder(pref, 9999)
+        val preference = runCatching {
+            preferenceClass.getConstructor(Context::class.java).newInstance(context)
+        }.getOrNull() ?: return
 
-            // Dynamic sparkle icon (Material 3 purple/accent)
-            val isDark = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
-                    android.content.res.Configuration.UI_MODE_NIGHT_YES
-            val sparkleCol = if (isDark) 0xFFD0BCFF.toInt() else 0xFF65558F.toInt()
-            val sparkleDrawable = GboardSettingsDialog.SparkleDrawable(sparkleCol)
-            setPreferenceIcon(pref, sparkleDrawable)
+        setPreferenceKey(preference, ADVANCED_SETTINGS_KEY)
+        setPreferenceTitle(preference, ADVANCED_SETTINGS_TITLE)
+        setPreferenceOrder(preference, 9999)
 
-            // Set OnPreferenceClickListener proxy (supports standard and obfuscated ebl)
-            val listenerClassNames = listOf(
-                "androidx.preference.Preference\$OnPreferenceClickListener",
-                "ebl"
-            )
-            for (name in listenerClassNames) {
-                val lClass = runCatching { classLoader.loadClass(name) }.getOrNull() ?: continue
-                val proxy = Proxy.newProxyInstance(
-                    classLoader,
-                    arrayOf(lClass)
-                ) { _, _, _ ->
-                    val act = resolveActivity(context) ?: resolveActivity(resolveContext(fragment))
-                    if (act != null) {
-                        GboardSettingsDialog.show(act)
-                    }
-                    true
-                }
+        val isDark = (context.resources.configuration.uiMode and
+            android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val sparkleColor = if (isDark) 0xFFD0BCFF.toInt() else 0xFF65558F.toInt()
+        setPreferenceIcon(preference, GboardSettingsDialog.SparkleDrawable(sparkleColor))
 
-                val method = pref.javaClass.methods.firstOrNull {
-                    it.parameterTypes.size == 1 && it.parameterTypes[0].isAssignableFrom(lClass)
-                }
-                if (method != null) {
-                    method.invoke(pref, proxy)
-                    break
-                }
-                val field = pref.javaClass.declaredFields.firstOrNull {
-                    it.type.isAssignableFrom(lClass)
-                }
-                if (field != null) {
-                    field.isAccessible = true
-                    field.set(pref, proxy)
-                    break
-                }
-            }
-
-            addPreferenceToScreen(screen, pref)
-            Log.i(TAG, "NexFusion: Gboard 'Advanced settings' injected successfully into settings screen")
-        } catch (t: Throwable) {
-            Log.w(TAG, "NexFusion: Failed to inject Advanced settings preference", t)
-        }
+        addPreferenceToScreen(screen, preference)
+        Log.i(TAG, "NexFusion: Gboard 'Advanced settings' injected into ${fragment.javaClass.name}")
     }
 
     private fun removeBloatPreferences(screen: Any) {
         val count = getPreferenceCount(screen)
-        for (i in count - 1 downTo 0) {
-            val pref = getPreferenceAtIndex(screen, i) ?: continue
-            val title = getPreferenceTitle(pref)
-            val key = getPreferenceKey(pref)
+        for (index in count - 1 downTo 0) {
+            val preference = getPreferenceAtIndex(screen, index) ?: continue
+            val title = getPreferenceTitle(preference)
+            val key = getPreferenceKey(preference)
             if (title.contains("Rate Gboard", ignoreCase = true) ||
+                title.contains("Rate us", ignoreCase = true) ||
                 title.contains("Help & feedback", ignoreCase = true) ||
                 title.contains("Help and feedback", ignoreCase = true) ||
                 (title.contains("Feedback", ignoreCase = true) && !title.contains("haptic", ignoreCase = true)) ||
                 key.contains("rate", ignoreCase = true) ||
                 key.contains("feedback", ignoreCase = true)
             ) {
-                removePreferenceFromScreen(screen, pref)
-                Log.i(TAG, "NexFusion: Removed bloat preference: '$title' ($key)")
+                removePreferenceFromScreen(screen, preference)
+                Log.i(TAG, "NexFusion: removed bloat preference '$title' ($key)")
             }
         }
     }
@@ -250,41 +232,41 @@ object GboardSettingsHook {
         runCatching { obj.javaClass.getMethod("w").invoke(obj) as? Context }.getOrNull()?.let { return it }
         runCatching { obj.javaClass.getMethod("x").invoke(obj) as? Context }.getOrNull()?.let { return it }
 
-        var curr: Class<*>? = obj.javaClass
-        while (curr != null && curr != Any::class.java) {
-            for (f in curr.declaredFields) {
-                if (Context::class.java.isAssignableFrom(f.type)) {
-                    f.isAccessible = true
-                    (f.get(obj) as? Context)?.let { return it }
+        var current: Class<*>? = obj.javaClass
+        while (current != null && current != Any::class.java) {
+            for (field in current.declaredFields) {
+                if (Context::class.java.isAssignableFrom(field.type)) {
+                    runCatching {
+                        field.isAccessible = true
+                        field.get(obj) as? Context
+                    }.getOrNull()?.let { return it }
                 }
             }
-            curr = curr.superclass
+            current = current.superclass
         }
         return null
     }
 
-    fun resolveActivity(ctx: Context?): Activity? {
-        var c = ctx
-        while (c is ContextWrapper) {
-            if (c is Activity) return c
-            c = c.baseContext
+    fun resolveActivity(context: Context?): Activity? {
+        var current = context
+        while (current is ContextWrapper) {
+            if (current is Activity) return current
+            current = current.baseContext
         }
-        if (c is Activity) return c
+        if (current is Activity) return current
 
-        // Robust fallback: retrieve active activity from ActivityThread
+        // Last resort: pick the current resumed Activity from ActivityThread.
         runCatching {
-            val atClass = Class.forName("android.app.ActivityThread")
-            val currentAt = atClass.getMethod("currentActivityThread").invoke(null)
-            val mActivitiesField = atClass.getDeclaredField("mActivities").apply { isAccessible = true }
-            val activities = mActivitiesField.get(currentAt) as? Map<*, *>
-            if (activities != null) {
-                for (record in activities.values) {
-                    if (record == null) continue
-                    val actField = record.javaClass.getDeclaredField("activity").apply { isAccessible = true }
-                    val activity = actField.get(record) as? Activity
-                    if (activity != null && !activity.isFinishing && !activity.isDestroyed) {
-                        return activity
-                    }
+            val activityThreadClass = Class.forName("android.app.ActivityThread")
+            val activityThread = activityThreadClass.getMethod("currentActivityThread").invoke(null)
+            val activitiesField = activityThreadClass.getDeclaredField("mActivities").apply { isAccessible = true }
+            val activities = activitiesField.get(activityThread) as? Map<*, *> ?: return null
+            for (record in activities.values) {
+                if (record == null) continue
+                val activityField = record.javaClass.getDeclaredField("activity").apply { isAccessible = true }
+                val activity = activityField.get(record) as? Activity
+                if (activity != null && !activity.isFinishing && !activity.isDestroyed) {
+                    return activity
                 }
             }
         }
@@ -294,148 +276,156 @@ object GboardSettingsHook {
     private fun getPreferenceScreen(fragment: Any): Any? {
         val method = fragment.javaClass.methods.firstOrNull {
             (it.name == "getPreferenceScreen" || it.name == "n") &&
-                    it.parameterTypes.isEmpty() &&
-                    it.returnType.name.contains("Preference")
+                it.parameterTypes.isEmpty() &&
+                it.returnType.name == PREFERENCE_SCREEN_CLASS
         }
-        return method?.invoke(fragment)
+        return method?.let { runCatching { it.invoke(fragment) }.getOrNull() }
     }
 
     private fun getPreferenceCount(screen: Any): Int {
         val method = screen.javaClass.methods.firstOrNull {
             (it.name == "getPreferenceCount" || it.name == "k") &&
-                    it.parameterTypes.isEmpty() &&
-                    it.returnType == Int::class.javaPrimitiveType
+                it.parameterTypes.isEmpty() &&
+                it.returnType == Int::class.javaPrimitiveType
         }
-        return (method?.invoke(screen) as? Int) ?: 0
+        return (method?.let { runCatching { it.invoke(screen) }.getOrNull() } as? Int) ?: 0
     }
 
     private fun getPreferenceAtIndex(screen: Any, index: Int): Any? {
         val method = screen.javaClass.methods.firstOrNull {
             (it.name == "getPreference" || it.name == "o") &&
-                    it.parameterTypes.size == 1 &&
-                    it.parameterTypes[0] == Int::class.javaPrimitiveType
+                it.parameterTypes.size == 1 &&
+                it.parameterTypes[0] == Int::class.javaPrimitiveType
         }
-        return method?.invoke(screen, index)
+        return method?.let { runCatching { it.invoke(screen, index) }.getOrNull() }
     }
 
     private fun findPreference(screen: Any, key: String): Any? {
         val method = screen.javaClass.methods.firstOrNull {
             (it.name == "findPreference" || it.name == "l") &&
-                    it.parameterTypes.size == 1 &&
-                    CharSequence::class.java.isAssignableFrom(it.parameterTypes[0])
-        }
-        return method?.invoke(screen, key)
-    }
-
-    private fun addPreferenceToScreen(screen: Any, pref: Any) {
-        val method = screen.javaClass.methods.firstOrNull {
-            (it.name == "addPreference" || it.name == "an") &&
-                    it.parameterTypes.size == 1 &&
-                    it.parameterTypes[0].name.contains("Preference")
-        }
-        method?.invoke(screen, pref)
-    }
-
-    private fun removePreferenceFromScreen(screen: Any, pref: Any) {
-        val method = screen.javaClass.methods.firstOrNull {
-            (it.name == "removePreference" || it.name == "ao") &&
-                    it.parameterTypes.size == 1 &&
-                    it.parameterTypes[0].name.contains("Preference")
-        }
-        method?.invoke(screen, pref)
-    }
-
-    private fun setPreferenceKey(pref: Any, key: String) {
-        val m = pref.javaClass.methods.firstOrNull {
-            (it.name == "setKey" || it.name == "P") &&
-                it.parameterTypes.size == 1 && it.parameterTypes[0] == String::class.java
-        }
-        if (m != null) {
-            val ok = runCatching { m.invoke(pref, key) }.isSuccess
-            if (ok) return
-        }
-        for (f in pref.javaClass.declaredFields) {
-            if (f.name == "r" || (f.type == String::class.java && !java.lang.reflect.Modifier.isStatic(f.modifiers))) {
-                f.isAccessible = true
-                f.set(pref, key)
-                break
-            }
-        }
-    }
-
-    private fun setPreferenceTitle(pref: Any, title: CharSequence) {
-        val m = pref.javaClass.methods.firstOrNull {
-            (it.name == "setTitle" || it.name == "V" || it.name == "n") &&
                 it.parameterTypes.size == 1 &&
                 CharSequence::class.java.isAssignableFrom(it.parameterTypes[0])
         }
-        if (m != null) {
-            val ok = runCatching { m.invoke(pref, title) }.isSuccess
-            if (ok) return
-        }
-        for (f in pref.javaClass.declaredFields) {
-            if (f.name == "q" || (CharSequence::class.java.isAssignableFrom(f.type) && f.type != String::class.java)) {
-                f.isAccessible = true
-                f.set(pref, title)
-                break
-            }
-        }
+        return method?.let { runCatching { it.invoke(screen, key) }.getOrNull() }
     }
 
-    private fun setPreferenceOrder(pref: Any, order: Int) {
-        val m = pref.javaClass.methods.firstOrNull {
-            (it.name == "setOrder" || it.name == "S" || it.name == "Q" || it.name == "U") &&
-                it.parameterTypes.size == 1 && it.parameterTypes[0] == Int::class.javaPrimitiveType
-        }
-        if (m != null) {
-            val ok = runCatching { m.invoke(pref, order) }.isSuccess
-            if (ok) return
-        }
-        runCatching {
-            val f = pref.javaClass.getDeclaredField("p").apply { isAccessible = true }
-            f.set(pref, order)
-        }
-    }
-
-    private fun setPreferenceIcon(pref: Any, icon: android.graphics.drawable.Drawable) {
-        val m = pref.javaClass.methods.firstOrNull {
-            (it.name == "setIcon" || it.name == "N") &&
+    private fun addPreferenceToScreen(screen: Any, preference: Any) {
+        val method = screen.javaClass.methods.firstOrNull {
+            (it.name == "addPreference" || it.name == "an") &&
                 it.parameterTypes.size == 1 &&
-                android.graphics.drawable.Drawable::class.java.isAssignableFrom(it.parameterTypes[0])
+                it.parameterTypes[0].name.contains("Preference")
         }
-        if (m != null) {
-            val ok = runCatching { m.invoke(pref, icon) }.isSuccess
-            if (ok) return
-        }
-        runCatching {
-            val f = pref.javaClass.getDeclaredField("c").apply { isAccessible = true }
-            f.set(pref, icon)
-        }
+        method?.let { runCatching { it.invoke(screen, preference) } }
     }
 
-    private fun getPreferenceKey(pref: Any): String {
-        return runCatching { XposedHelpers.callMethod(pref, "getKey") as? String }.getOrNull()
-            ?: runCatching {
-                pref.javaClass.methods.firstOrNull {
-                    (it.name == "getKey" || it.name == "m") && it.parameterTypes.isEmpty()
-                }?.invoke(pref)?.toString()
-            }.getOrNull()
-            ?: runCatching {
-                val f = pref.javaClass.getDeclaredField("r").apply { isAccessible = true }
-                f.get(pref)?.toString()
-            }.getOrNull() ?: ""
+    private fun removePreferenceFromScreen(screen: Any, preference: Any) {
+        val method = screen.javaClass.methods.firstOrNull {
+            (it.name == "removePreference" || it.name == "ao") &&
+                it.parameterTypes.size == 1 &&
+                it.parameterTypes[0].name.contains("Preference")
+        }
+        method?.let { runCatching { it.invoke(screen, preference) } }
     }
 
-    private fun getPreferenceTitle(pref: Any): String {
-        return runCatching { XposedHelpers.callMethod(pref, "getTitle")?.toString() }.getOrNull()
-            ?: runCatching {
-                pref.javaClass.methods.firstOrNull {
-                    (it.name == "getTitle" || it.name == "v") && it.parameterTypes.isEmpty()
-                }?.invoke(pref)?.toString()
-            }.getOrNull()
-            ?: runCatching {
-                val f = pref.javaClass.getDeclaredField("q").apply { isAccessible = true }
-                f.get(pref)?.toString()
-            }.getOrNull() ?: ""
+    private fun setPreferenceKey(preference: Any, key: String) {
+        val method = preference.javaClass.methods.firstOrNull {
+            (it.name == "setKey" || it.name == "P") &&
+                it.returnType == Void.TYPE &&
+                it.parameterTypes.size == 1 &&
+                it.parameterTypes[0] == String::class.java
+        }
+        if (method != null && runCatching { method.invoke(preference, key) }.isSuccess) return
+
+        setField(preference, "r", String::class.java, key)
+    }
+
+    private fun setPreferenceTitle(preference: Any, title: CharSequence) {
+        val method = preference.javaClass.methods.firstOrNull {
+            (it.name == "setTitle" || it.name == "V") &&
+                it.returnType == Void.TYPE &&
+                it.parameterTypes.size == 1 &&
+                CharSequence::class.java.isAssignableFrom(it.parameterTypes[0])
+        }
+        if (method != null && runCatching { method.invoke(preference, title) }.isSuccess) return
+
+        setField(preference, "q", CharSequence::class.java, title)
+    }
+
+    private fun setPreferenceOrder(preference: Any, order: Int) {
+        val method = preference.javaClass.methods.firstOrNull {
+            (it.name == "setOrder" || it.name == "Q") &&
+                it.returnType == Void.TYPE &&
+                it.parameterTypes.size == 1 &&
+                it.parameterTypes[0] == Int::class.javaPrimitiveType
+        }
+        if (method != null && runCatching { method.invoke(preference, order) }.isSuccess) return
+
+        setField(preference, "p", Int::class.javaPrimitiveType!!, order)
+    }
+
+    private fun setPreferenceIcon(preference: Any, icon: Drawable) {
+        val method = preference.javaClass.methods.firstOrNull {
+            (it.name == "setIcon" || it.name == "N") &&
+                it.returnType == Void.TYPE &&
+                it.parameterTypes.size == 1 &&
+                Drawable::class.java.isAssignableFrom(it.parameterTypes[0])
+        }
+        if (method != null && runCatching { method.invoke(preference, icon) }.isSuccess) return
+
+        setField(preference, "c", Drawable::class.java, icon)
+    }
+
+    private fun setField(instance: Any, name: String, type: Class<*>, value: Any?): Boolean {
+        var current: Class<*>? = instance.javaClass
+        while (current != null && current != Any::class.java) {
+            val field = current.declaredFields.firstOrNull { it.name == name && it.type == type }
+            if (field != null) {
+                return runCatching {
+                    field.isAccessible = true
+                    field.set(instance, value)
+                }.isSuccess
+            }
+            current = current.superclass
+        }
+        return false
+    }
+
+    private fun getPreferenceKey(preference: Any): String {
+        fieldValue(preference, "r", String::class.java)?.let { return it.toString() }
+
+        return runCatching {
+            preference.javaClass.methods.firstOrNull {
+                it.name == "getKey" &&
+                    it.parameterTypes.isEmpty() &&
+                    it.returnType == String::class.java
+            }?.invoke(preference)?.toString()
+        }.getOrNull().orEmpty()
+    }
+
+    private fun getPreferenceTitle(preference: Any): String {
+        fieldValue(preference, "q", CharSequence::class.java)?.let { return it.toString() }
+
+        return runCatching {
+            preference.javaClass.methods.firstOrNull {
+                it.name == "getTitle" &&
+                    it.parameterTypes.isEmpty() &&
+                    CharSequence::class.java.isAssignableFrom(it.returnType)
+            }?.invoke(preference)?.toString()
+        }.getOrNull().orEmpty()
+    }
+
+    private fun fieldValue(instance: Any, name: String, type: Class<*>): Any? {
+        var current: Class<*>? = instance.javaClass
+        while (current != null && current != Any::class.java) {
+            val field = current.declaredFields.firstOrNull { it.name == name && it.type == type }
+            if (field != null) {
+                return runCatching {
+                    field.isAccessible = true
+                    field.get(instance)
+                }.getOrNull()
+            }
+            current = current.superclass
+        }
+        return null
     }
 }

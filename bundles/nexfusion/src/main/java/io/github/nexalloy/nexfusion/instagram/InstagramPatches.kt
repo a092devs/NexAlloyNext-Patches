@@ -27,7 +27,7 @@ import java.util.WeakHashMap
 
 /**
  * Instagram patches ported from SysAdminDoc/HushGram (GPL-3.0),
- * supporting Instagram 451.0.0.53.80, 450.0.0.46.79, 447.0.0.55.81, and compatible versions.
+ * supporting Instagram 452.0.0.48.64, 451.0.0.53.80, 450.0.0.46.79, 447.0.0.55.81, and compatible versions.
  *
  * Three kinds of mechanism are used, and only these:
  *

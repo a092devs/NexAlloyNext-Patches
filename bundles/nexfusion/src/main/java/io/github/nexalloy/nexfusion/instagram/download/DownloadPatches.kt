@@ -1034,7 +1034,15 @@ val DownloadMedia = patch(
         }
 
         val rowConstructor = ::storyMenuRowConstructor.constructor.apply { isAccessible = true }
-        val function0 = rowConstructor.parameterTypes[7]
+        val rowParameterTypes = rowConstructor.parameterTypes
+        val onClickIndex = rowParameterTypes.indexOfFirst { it.name == "kotlin.jvm.functions.Function0" }
+        if (onClickIndex < 0) throw Exception("Story menu row has no click handler parameter")
+        val function0 = rowParameterTypes[onClickIndex]
+        val titleIndex = rowParameterTypes.indexOfFirst { it == String::class.java }
+        if (titleIndex < 0) throw Exception("Story menu row has no title parameter")
+        val iconIndex = (onClickIndex + 1 until rowParameterTypes.size)
+            .firstOrNull { rowParameterTypes[it] == Int::class.javaPrimitiveType }
+            ?: throw Exception("Story menu row has no icon parameter")
         ::storyMenuSheetMethod.hookMethod {
             before { param ->
                 val viewer = resumedViewer.get() ?: return@before
@@ -1063,8 +1071,30 @@ val DownloadMedia = patch(
                             else -> "Download"
                         }
                     }
-                    val trailingBooleans = List((rowConstructor.parameterTypes.size - 9).coerceAtLeast(2)) { false }
-                    val args = arrayOf(null, null, null, null, DOWNLOAD_LABEL, "", null, onClick, icon, *trailingBooleans.toTypedArray())
+                    // Fill primitives with their defaults and leave nullable values null, then place the
+                    // title, subtitle, click handler and icon where this release expects them.
+                    val args = arrayOfNulls<Any?>(rowParameterTypes.size)
+                    for (i in rowParameterTypes.indices) {
+                        args[i] = when (rowParameterTypes[i]) {
+                            java.lang.Boolean.TYPE -> false
+                            java.lang.Integer.TYPE -> 0
+                            java.lang.Long.TYPE -> 0L
+                            java.lang.Float.TYPE -> 0f
+                            java.lang.Double.TYPE -> 0.0
+                            java.lang.Character.TYPE -> '\u0000'
+                            java.lang.Byte.TYPE -> 0.toByte()
+                            java.lang.Short.TYPE -> 0.toShort()
+                            else -> null
+                        }
+                    }
+                    args[titleIndex] = DOWNLOAD_LABEL
+                    if (titleIndex + 1 < rowParameterTypes.size &&
+                        rowParameterTypes[titleIndex + 1] == String::class.java
+                    ) {
+                        args[titleIndex + 1] = ""
+                    }
+                    args[onClickIndex] = onClick
+                    args[iconIndex] = icon
                     val row = rowConstructor.newInstance(*args)
                     param.args[0] = listOf(row) + rows
                     log("added to the story menu rows")
