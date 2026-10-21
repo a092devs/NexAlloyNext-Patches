@@ -102,6 +102,7 @@ class PlaybackSpeedMenu(
 }
 
 val VideoInformationPatch = patch(
+    name = "VideoInformationPatch",
     description = "Hooks YouTube to get information about the current playing video.",
 ) {
     dependsOn(
@@ -188,8 +189,11 @@ val VideoInformationPatch = patch(
 
     /*
      * Set the video time method
+     * Note: This fingerprint may not match all YouTube versions; made optional so
+     * VideoInformationPatch still applies even if video time tracking is unavailable.
      */
-    ::timeMethod.hookMethod {
+    val timeMethodRef = runCatching { ::timeMethod }.getOrNull()
+    timeMethodRef?.hookMethod {
         before { param ->
             val videoTime = param.args[0] as Long
             videoTimeHooks.forEach { it(videoTime) }

@@ -8,7 +8,7 @@ fun addPlayerResponseMethodHook(hook: Hook<*>) {
     hooks += hook
 }
 
-val PlayerResponseMethodHook = patch {
+val PlayerResponseMethodHook = patch(name = "PlayerResponseMethodHook") {
     val PARAMETER_VIDEO_ID = 0
     val PARAMETER_PROTO_BUFFER = 2
     val PARAMETER_PLAYLIST_ID = 3

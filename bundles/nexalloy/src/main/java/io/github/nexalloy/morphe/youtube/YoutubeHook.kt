@@ -26,7 +26,6 @@ import io.github.nexalloy.morphe.youtube.layout.miniplayer.Miniplayer
 import io.github.nexalloy.morphe.youtube.layout.player.pip.PipSeekButtons
 import io.github.nexalloy.morphe.youtube.layout.playlistautoplay.DisablePlaylistAutoplay
 import io.github.nexalloy.morphe.youtube.layout.shortsnoresume.DisableShortsResumingOnStartup
-import io.github.nexalloy.morphe.youtube.layout.sponsorblock.SponsorBlock
 import io.github.nexalloy.morphe.youtube.layout.startpage.changeStartPagePatch
 import io.github.nexalloy.morphe.youtube.layout.thumbnails.BypassImageRegionRestrictionsPatch
 import io.github.nexalloy.morphe.youtube.misc.backgroundplayback.BackgroundPlayback
@@ -108,7 +107,6 @@ val YouTubePatches = arrayOf(
     BackgroundPlayback,
     SanitizeSharingLinks,
     HideAds,
-    SponsorBlock,
     CopyVideoLinkButtonPatch,
     Downloads,
     HideShortsComponents,

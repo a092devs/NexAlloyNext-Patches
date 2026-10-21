@@ -54,7 +54,7 @@ fun enableDebuggingPatch(
     )
 
     // Hook the methods that look up if a feature flag is active.
-    ::experimentalBooleanFeatureFlagFingerprint.hookMethod {
+    ::experimentalBooleanFeatureFlagFingerprint.memberOrNull?.hookMethod {
         after {
             it.result = EnableDebuggingPatch.isBooleanFeatureFlagEnabled(
                 it.result as Boolean,
@@ -64,7 +64,7 @@ fun enableDebuggingPatch(
     }
 
     if (hookDoubleFeatureFlag()) {
-        ::experimentalDoubleFeatureFlagFingerprint.hookMethod {
+        ::experimentalDoubleFeatureFlagFingerprint.memberOrNull?.hookMethod {
             after {
                 it.result = EnableDebuggingPatch.isDoubleFeatureFlagEnabled(
                     it.result as Double,
@@ -102,3 +102,4 @@ fun enableDebuggingPatch(
     // There exists other experimental accessor methods for byte[]
     // and wrappers for obfuscated classes, but currently none of those are hooked.
 }
+

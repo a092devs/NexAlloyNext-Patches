@@ -617,7 +617,9 @@ private fun showManualFolderDialog(dialog: InstagramDialog, activity: Activity) 
         setPadding(dp(20), dp(10), dp(20), dp(10))
         addView(input)
     }
-    AlertDialog.Builder(activity)
+    val isDark = (activity.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+    val themeRes = if (isDark) android.R.style.Theme_DeviceDefault_Dialog_Alert else android.R.style.Theme_DeviceDefault_Light_Dialog_Alert
+    AlertDialog.Builder(activity, themeRes)
         .setTitle("Change download folder")
         .setMessage("Base folder path under ${settings.location.label}:")
         .setView(container)
@@ -807,6 +809,11 @@ val DownloadMedia = patch(
         if (user == null) null else userUsernameGetter?.invoke(user) as? String
     }.onFailure { log("username not read: $it") }.getOrNull()
     val icon = appContext.resources.getIdentifier("instagram_download_outline_24", "drawable", appContext.packageName)
+    val audioIcon = appContext.resources.getIdentifier("instagram_audio_extract_outline_24", "drawable", appContext.packageName).takeIf { it != 0 }
+        ?: appContext.resources.getIdentifier("instagram_music_outline_24", "drawable", appContext.packageName).takeIf { it != 0 }
+        ?: icon
+    val moreIcon = appContext.resources.getIdentifier("instagram_more_horizontal_outline_24", "drawable", appContext.packageName).takeIf { it != 0 }
+        ?: icon
 
     val highlightCover = optional("Highlight cover") { HighlightCover(classLoader, ::log) }
 
@@ -910,11 +917,20 @@ val DownloadMedia = patch(
     }
 
     // The bottom sheet menus of reels, of posts shown like reels and of the "≡" button of posts in the home feed.
-    // Like Piko's reels button, the item is added to the sheet builder right after the menu creates it.
+    // Adds direct one-tap download rows matching Facebook's clean layout and Instagram's native theme.
     menus["sheet menus"] = runCatching {
         val builderClass = ::sheetMenuBuilderClass.clazz
         // A simple label-and-icon row. 451 adds a trailing boolean; 452 has a four-parameter overload.
         val addItem = ::sheetMenuAddItemMethod.method.apply { isAccessible = true }
+
+        fun addSheetRow(builder: Any, act: Activity, label: String, rowIcon: Int, action: () -> Unit) {
+            val onClick = View.OnClickListener {
+                runCatching(action).onFailure { log("$label action error: $it") }
+            }
+            val itemArguments = mutableListOf<Any?>(act, onClick, label, rowIcon)
+            if (addItem.parameterCount == 5) itemArguments += false
+            addItem.invoke(builder, *itemArguments.toTypedArray())
+        }
 
         val handledBuilders: MutableSet<Any> = Collections.synchronizedSet(Collections.newSetFromMap(WeakHashMap()))
         val addDownload: HookDsl<IScopedHookCallback>.() -> Unit = {
@@ -931,14 +947,51 @@ val DownloadMedia = patch(
                         ?: return@after log("no post for $module")
                     val activity = owners.firstNotNullOfOrNull(::activityIn) ?: lastResumedActivity?.get()
                         ?: return@after log("no activity for $module")
-                    val onClick = View.OnClickListener {
-                        log("tapped in $module")
-                        downloadMedia(activity, media, owners)
+
+                    val items = runCatching { extractor.items(media) }.getOrNull().orEmpty()
+                    val username = usernameOf(media)
+                    val currentPos = if (items.size > 1) position(owners) else 0
+                    val current = items.getOrNull(currentPos) ?: items.firstOrNull()
+
+                    if (current != null) {
+                        if (current.isVideo) {
+                            addSheetRow(param.thisObject, activity, "Download reel", icon) {
+                                log("tapped Download reel in $module")
+                                enqueue(activity, listOf(current), username)
+                            }
+                            addSheetRow(param.thisObject, activity, "Download audio", audioIcon) {
+                                log("tapped Download audio in $module")
+                                downloadAudio(activity, current, username)
+                            }
+                        } else {
+                            addSheetRow(param.thisObject, activity, "Download photo", icon) {
+                                log("tapped Download photo in $module")
+                                enqueue(activity, listOf(current), username)
+                            }
+                            if (items.size > 1) {
+                                addSheetRow(param.thisObject, activity, "Download all (${items.size})", icon) {
+                                    log("tapped Download all in $module")
+                                    enqueue(activity, items, username)
+                                }
+                            }
+                            if (current.audioUrl != null) {
+                                addSheetRow(param.thisObject, activity, "Download audio", audioIcon) {
+                                    log("tapped Download audio in $module")
+                                    downloadAudio(activity, current, username)
+                                }
+                            }
+                        }
+                        addSheetRow(param.thisObject, activity, DOWNLOAD_LABEL, moreIcon) {
+                            log("tapped Download options in $module")
+                            downloadMedia(activity, media, owners)
+                        }
+                    } else {
+                        addSheetRow(param.thisObject, activity, DOWNLOAD_LABEL, icon) {
+                            log("tapped $DOWNLOAD_LABEL in $module")
+                            downloadMedia(activity, media, owners)
+                        }
                     }
-                    val itemArguments = mutableListOf<Any?>(activity, onClick, DOWNLOAD_LABEL, icon)
-                    if (addItem.parameterCount == 5) itemArguments += false
-                    addItem.invoke(param.thisObject, *itemArguments.toTypedArray())
-                    log("added to $module")
+                    log("added download rows to $module")
                 } catch (e: Exception) {
                     PatcherLog.error(e) { "Could not add the download option to $module" }
                 }

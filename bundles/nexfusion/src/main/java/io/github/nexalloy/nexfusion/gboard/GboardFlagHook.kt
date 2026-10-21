@@ -145,9 +145,10 @@ fun PatchExecutor.enableGboardRoundedKeysPreference() {
 
 /**
  * Ensures Gboard's AI Writing Tools and Jarvis consent preferences are enabled in SharedPreferences
- * storage and runtime lookups.
+ * storage and runtime lookups, placing jarvis in the primary access points toolbar.
  */
 fun PatchExecutor.enableGboardWritingToolsPreference() {
+    val order = "jarvis;clipboard;translate;settings;gif_search;sticker;search;one_handed;textediting;floating_keyboard"
     enableGboardPreferences(
         booleans = mapOf(
             "pref_key_writing_tools_opt_in" to true,
@@ -155,9 +156,19 @@ fun PatchExecutor.enableGboardWritingToolsPreference() {
             "pref_key_writing_tools_screen_context_opt_in_v1" to true,
             "pref_key_writing_tools_enable_pi_override" to true,
             "show_suggestion_strip" to true,
+            "pref_key_stop_dictation_after_sending_writing_tools_v2_prompts" to false,
+            "has_reorganized_access_points_order" to true,
+            "jarvis_consent_history" to true,
+            "enable_jarvis" to true,
+            "jarvis_enabled" to true,
         ),
         strings = mapOf(
-            "jarvis_consent_history" to "Granted (Form)"
+            "jarvis_consent_history" to "Granted (Form)",
+            "pref_key_access_points_showing_order" to order,
+            "access_points_showing_order" to order,
+            "config_access_points_order" to order,
+            "access_points_order" to order,
+            "access_points_order_for_new_user_on_phone" to order,
         )
     )
 }

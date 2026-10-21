@@ -15,7 +15,7 @@ android {
 
     defaultConfig {
         applicationId = "io.github.nexalloy.patches"
-        versionCode = 10
+        versionCode = 12
         val patchVersion = Properties().apply {
             rootProject.file("morphe-patches/gradle.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
         }["version"]
@@ -107,6 +107,7 @@ abstract class GenerateMorpheTargetsTask : DefaultTask() {
         private val VERIFIED_UPSTREAM_TARGETS = mapOf(
             "YOUTUBE" to listOf(
                 // Upstream Morphe verified targets (stable 21.20.405, newer are experimental)
+                "new AppTarget(\"21.42.243\", true)",
                 "new AppTarget(\"21.41.525\", true)",
                 "new AppTarget(\"21.40.161\", true)",
                 "new AppTarget(\"21.39.522\", true)",

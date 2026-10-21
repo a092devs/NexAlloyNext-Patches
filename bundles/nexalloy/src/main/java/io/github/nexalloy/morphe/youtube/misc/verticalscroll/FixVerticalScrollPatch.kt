@@ -1,5 +1,6 @@
 package io.github.nexalloy.morphe.youtube.misc.verticalscroll
 
+import app.morphe.extension.shared.Logger
 import de.robv.android.xposed.XC_MethodReplacement.returnConstant
 import io.github.nexalloy.morphe.youtube.insertLiteralOverride
 import io.github.nexalloy.morphe.youtube.misc.playservice.VersionCheck
@@ -16,5 +17,9 @@ val FixVerticalScroll = patch(
         insertLiteralOverride(45782902L)
     }
 
-    ::canScrollVerticallyFingerprint.hookMethod(returnConstant(false))
+    try {
+        ::canScrollVerticallyFingerprint.hookMethod(returnConstant(false))
+    } catch (e: Throwable) {
+        Logger.printException({ "canScrollVerticallyFingerprint hook failed" }, e)
+    }
 }

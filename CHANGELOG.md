@@ -5,6 +5,24 @@ automatically on every push to `main` for the version of the first `X.Y.Z` secti
 version has no release yet. The section matching the release tag becomes the release notes,
 falling back to generated commit notes when no section exists.
 
+## 3.3.9
+
+- `NexAlloy` 1.0.12:
+  * YouTube: Added `is_21.38_or_greater` and `is_21.40_or_greater` version flags for YouTube 21.38+ and 21.40+ compatibility.
+  * YouTube: Added `readsResourcesWithParser` support to `ElementProtoParserHookPatch` for YouTube 21.40+ inline resource handling (template/JS module bytes).
+  * YouTube: Made `timeMethod` hook optional in `VideoInformationPatch` so the patch still applies even when the fingerprint doesn't match on YouTube 21.42+, preventing cascade failures to SponsorBlock and other dependent patches.
+  * YouTube: Added `name` parameters to all YouTube dependency patches (`PlayerResponseMethodHook`, `VideoId`, `VideoInformationPatch`, `PlayerTypeHook`, `LegacyPlayerControls`, `PlayerControlsOverlayVisibility`, `conversionContextPatch`, `textComponentPatch`) for clearer patch status reporting.
+- `NexAlloy` 1.0.11:
+  * YouTube: Fixed `FixVerticalScrollPatch` fingerprint for YouTube 21.42+ by resolving direct `canScrollVertically` call on obfuscated `SwipeRefreshLayout` and adding resilient catch handler to prevent cascading `LithoFilter` hook initialization failure.
+  * YouTube: Updated `experimentFlagUtilFingerprint` and flag accessor fingerprints for YouTube 21.42+ three-parameter method shape (`listOf("I", "J", ...)`).
+  * YouTube: Added 21.42+ compatibility check in `VersionCheckPatch`.
+  * YouTube: Constrained bottom navigation bar IME padding growth.
+- `NexFusion` 3.3.9:
+  * Instagram: Redesigned Downloader UI to match Facebook's seamless experience with direct 1-tap rows for Reel, Audio, Photo, and Album downloads.
+  * Gboard: Fixed AI Writing Tools (`jarvis`) toolbar access point ordering and Phenotype flag integration so writing tools appear directly on the keyboard toolbar.
+  * App Compatibility: Added support and verified hooks for Discord 350.8, LinkedIn 4.1.1263, Proton VPN 5.20.98.0, and X 12.36.1-prod.01.
+  * Proton VPN: Added suppression for telemetry and background workers.
+
 ## 3.3.8
 
 - `NexFusion` 3.3.8:

@@ -9,6 +9,7 @@ import io.github.nexalloy.patch
 
 @SuppressLint("NonUniqueDexKitData")
 val PlayerTypeHook = patch(
+    name = "PlayerTypeHook",
     description = "Hook to get the current player type and video playback state.",
 ) {
     dependsOn(VersionCheck)

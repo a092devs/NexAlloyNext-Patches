@@ -484,11 +484,11 @@ object GboardSettingsDialog {
         override fun getOpacity(): Int = android.graphics.PixelFormat.TRANSLUCENT
     }
 
-    // Restart Icon Drawable (↻)
+    // Restart Icon Drawable (↻) - clockwise circular refresh arrow
     class RestartIconDrawable(private val color: Int) : Drawable() {
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = this@RestartIconDrawable.color
-            strokeWidth = 5f
+            strokeWidth = 6f
             style = Paint.Style.STROKE
             strokeCap = Paint.Cap.ROUND
         }
@@ -501,17 +501,35 @@ object GboardSettingsDialog {
             val b = bounds
             val cx = b.exactCenterX()
             val cy = b.exactCenterY()
-            val r = min(b.width(), b.height()) * 0.32f
-            val rect = android.graphics.RectF(cx - r, cy - r, cx + r, cy + r)
-            canvas.drawArc(rect, 45f, 270f, false, paint)
+            val r = min(b.width(), b.height()) * 0.40f
 
-            // Arrow head at top of the arc
+            // Draw a clockwise circular arrow: arc goes from top (~270°/top) around clockwise
+            // to bottom-left (~225°), sweeping about 240°
+            val rect = android.graphics.RectF(cx - r, cy - r, cx + r, cy + r)
+            canvas.drawArc(rect, 270f, 240f, false, paint)
+
+            // Arrow head at end of arc (~225° = bottom-left), pointing down-left continuing flow
+            val endAngle = 225f
+            val angleRad = Math.toRadians(endAngle.toDouble())
+            val endX = cx + r * Math.cos(angleRad).toFloat()
+            val endY = cy + r * Math.sin(angleRad).toFloat()
+
+            // Direction tangent to arc at end point (clockwise flow = down-left at 225°)
+            val dirAngle = endAngle + 90f // tangent direction
+            val dx = Math.cos(Math.toRadians(dirAngle.toDouble())).toFloat()
+            val dy = Math.sin(Math.toRadians(dirAngle.toDouble())).toFloat()
+            val arrowLen = 9f
+            val tipX = endX + dx * arrowLen
+            val tipY = endY + dy * arrowLen
+            // Arrow head base (perpendicular to direction)
+            val baseW = 6f
+            val px = -dy * baseW
+            val py = dx * baseW
+
             val arrowPath = Path().apply {
-                val ax = cx
-                val ay = cy - r
-                moveTo(ax - 8f, ay - 12f)
-                lineTo(ax + 10f, ay)
-                lineTo(ax - 8f, ay + 12f)
+                moveTo(tipX, tipY)
+                lineTo(endX + px, endY + py)
+                lineTo(endX - px, endY - py)
                 close()
             }
             canvas.drawPath(arrowPath, fillPaint)

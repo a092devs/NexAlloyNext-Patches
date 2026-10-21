@@ -27,7 +27,8 @@ class ProtonVpnPatchesTest {
         assertEquals(5, protonApp.patches.size)
 
         val targetVersions = protonApp.targets.map { it.version }.toSet()
-        assertTrue(targetVersions.contains("5.20.74.0"), "Must support installed device version 5.20.74.0")
+        assertTrue(targetVersions.contains("5.20.98.0"), "Must support installed device version 5.20.98.0")
+        assertTrue(targetVersions.contains("5.20.74.0"))
         assertTrue(targetVersions.contains("5.20.57.0"))
         assertTrue(targetVersions.contains("5.20.39.0"))
         assertTrue(targetVersions.contains("5.19.72.0"))

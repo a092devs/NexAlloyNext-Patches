@@ -7,6 +7,7 @@ import io.github.nexalloy.morphe.shared.spannableStringBuilderGetSpannedMethod
 import io.github.nexalloy.patch
 
 val textComponentPatch = patch(
+    name = "textComponentPatch",
     description = "Provides hooks into text components for extension filtering."
 ) {
     SpannableStringBuilderFingerprint.hookMethod {

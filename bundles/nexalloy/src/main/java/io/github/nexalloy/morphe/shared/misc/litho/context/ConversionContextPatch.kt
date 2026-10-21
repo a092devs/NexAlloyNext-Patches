@@ -29,6 +29,7 @@ data class ConversionContext(val conversion: Any) : ContextInterface {
  * Shared factory for the ConversionContext patch used by both YouTube and YT Music.
  */
 internal val conversionContextPatch = patch(
+    name = "conversionContextPatch",
     description = "Hooks the method to use the conversion context in an extension."
 ) {
     identifierField = ::identifierFieldData.field

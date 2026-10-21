@@ -53,6 +53,31 @@ val ProtonVpnDisableTelemetry = patch(
             })
         }
     }
+
+    // Block telemetry background workers and heartbeat in 5.20+
+    runCatching {
+        val workers = listOf(
+            "com.protonvpn.android.telemetry.TelemetryUploadWorker",
+            "com.protonvpn.android.telemetry.SettingsHeartbeatWorker",
+            "me.proton.core.telemetry.data.worker.TelemetryWorker",
+        )
+        for (workerName in workers) {
+            val workerCls = runCatching { classLoader.loadClass(workerName) }.getOrNull() ?: continue
+            workerCls.declaredMethods.filter { it.name == "doWork" }.forEach { method ->
+                XposedBridge.hookMethod(method, object : XC_MethodHook() {
+                    override fun beforeHookedMethod(param: MethodHookParam) {
+                        // Return Result.success() to prevent worker execution and rescheduling
+                        val successMethod = runCatching {
+                            classLoader.loadClass("androidx.work.ListenableWorker\$Result").getMethod("success")
+                        }.getOrNull()
+                        if (successMethod != null) {
+                            param.result = successMethod.invoke(null)
+                        }
+                    }
+                })
+            }
+        }
+    }
 }
 
 val ProtonVpnServerChangeDelay = patch(

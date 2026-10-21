@@ -1,6 +1,11 @@
 package io.github.nexalloy.morphe.youtube.layout.buttons.navigation
 
+import android.os.Build
+import android.view.View
+import android.view.WindowInsets
 import android.widget.TextView
+import de.robv.android.xposed.XC_MethodHook
+import de.robv.android.xposed.XposedBridge
 import app.morphe.extension.youtube.patches.NavigationBarPatch
 import io.github.nexalloy.morphe.setExtensionIsPatchIncluded
 import io.github.nexalloy.morphe.shared.misc.settings.preference.PreferenceScreenPreference
@@ -94,6 +99,35 @@ val NavigationBar = patch(
     insertLiteralOverride(45631257L, NavigationBarPatch::useTranslucentNavigationBar)
 
     // TODO Narrow navigation buttons
+
+    // Fix navigation bar growing and covering the page when the keyboard is open
+    runCatching {
+        val pivotBarClass = classLoader.loadClass("com.google.android.libraries.youtube.rendering.ui.pivotbar.PivotBar")
+        val setPaddingMethod = pivotBarClass.methods.firstOrNull {
+            it.name == "setPadding" && it.parameterTypes.contentEquals(
+                arrayOf(
+                    Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType,
+                    Int::class.javaPrimitiveType,
+                )
+            )
+        }
+        if (setPaddingMethod != null) {
+            XposedBridge.hookMethod(setPaddingMethod, object : XC_MethodHook() {
+                override fun beforeHookedMethod(param: MethodHookParam) {
+                    val bar = param.thisObject as? View ?: return
+                    val bottom = param.args[3] as? Int ?: return
+                    if (bottom != 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        val insets = bar.rootWindowInsets
+                        if (insets != null && insets.isVisible(WindowInsets.Type.ime())) {
+                            param.args[3] = Math.min(bottom, insets.getInsets(WindowInsets.Type.systemBars()).bottom)
+                        }
+                    }
+                }
+            })
+        }
+    }
 
     // disableAutoHidingNavigationBar
 

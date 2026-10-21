@@ -24,6 +24,8 @@ object NexFusionPatches : PatchBundle {
             packageName = "com.discord",
             patches = DiscordPatches,
             targets = listOf(
+                AppTarget("350.8 - Stable"),
+                AppTarget("350.8"),
                 AppTarget("349.9 - Stable"),
                 AppTarget("349.9"),
                 AppTarget("348.10"),
@@ -80,7 +82,12 @@ object NexFusionPatches : PatchBundle {
             appName = "LinkedIn",
             packageName = "com.linkedin.android",
             patches = LinkedInPatches,
-            targets = listOf(AppTarget("4.1.1261"), AppTarget("4.1.1259"), AppTarget("4.1.1255.1")),
+            targets = listOf(
+                AppTarget("4.1.1263"),
+                AppTarget("4.1.1261"),
+                AppTarget("4.1.1259"),
+                AppTarget("4.1.1255.1"),
+            ),
             appIconColor = 0x0A66C2,
         ),
         AppPatchInfo(
@@ -93,6 +100,7 @@ object NexFusionPatches : PatchBundle {
             packageName = "ch.protonvpn.android",
             patches = ProtonVpnPatches,
             targets = listOf(
+                AppTarget("5.20.98.0"),
                 AppTarget("5.20.74.0"),
                 AppTarget("5.20.57.0"),
                 AppTarget("5.20.39.0"),
@@ -125,7 +133,10 @@ object NexFusionPatches : PatchBundle {
             appName = "X",
             packageName = "com.twitter.android",
             patches = TwitterPatches,
-            targets = listOf(AppTarget("12.35.0-prod.01")),
+            targets = listOf(
+                AppTarget("12.36.1-prod.01"),
+                AppTarget("12.35.0-prod.01"),
+            ),
             appIconColor = 0x000000,
         ),
     )

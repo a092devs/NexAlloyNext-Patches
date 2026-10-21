@@ -46,6 +46,7 @@ class FacebookDiscordCompatibilityTest {
 
     private val facebookApk = "compat-binaries/com.facebook.katana-583.0.0.39.55.apk"
     private val discordApk = "compat-binaries/com.discord-349.9.apk"
+    private val discord350Apk = "compat-binaries/com.discord-350.8.apk"
 
     @Test
     fun `facebook finders on installed 583`() {
@@ -128,6 +129,29 @@ class FacebookDiscordCompatibilityTest {
             for ((label, targets) in tables) {
                 val missing = targets.filter { target -> !exists(dexkit, target) }
                 println("$label: ${targets.size - missing.size}/${targets.size} present")
+                missing.forEach { failures += "$label: ${it.descriptor}" }
+            }
+            assertTrue(failures.isEmpty(), failures.joinToString("\n"))
+        }
+    }
+
+    @Test
+    fun `discord privacy targets on installed 3508`() {
+        assumeTrue(File(discord350Apk).isFile, "Discord 350.8 APK is not in compat-binaries/")
+        runCatching { System.loadLibrary("dexkit") }
+            .recoverCatching { System.loadLibrary("libdexkit") }
+            .getOrThrow()
+        DexKitBridge.create(discord350Apk).use { dexkit ->
+            val tables = listOf(
+                "crash" to PrivacyTargets.crash,
+                "telemetry" to PrivacyTargets.telemetry,
+                "advertising" to PrivacyTargets.advertising,
+                "attribution" to PrivacyTargets.attribution,
+            )
+            val failures = mutableListOf<String>()
+            for ((label, targets) in tables) {
+                val missing = targets.filter { target -> !exists(dexkit, target) }
+                println("350.8 $label: ${targets.size - missing.size}/${targets.size} present")
                 missing.forEach { failures += "$label: ${it.descriptor}" }
             }
             assertTrue(failures.isEmpty(), failures.joinToString("\n"))

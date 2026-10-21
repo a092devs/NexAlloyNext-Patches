@@ -109,6 +109,7 @@ private fun onBottomContainerInflate(viewStub: ViewStub, root: ViewGroup) {
 }
 
 val LegacyPlayerControls = patch(
+    name = "LegacyPlayerControls",
     description = "Manages the code for the player controls of the YouTube player.",
 ) {
     dependsOn(

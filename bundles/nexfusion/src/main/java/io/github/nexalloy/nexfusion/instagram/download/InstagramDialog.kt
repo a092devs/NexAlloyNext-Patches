@@ -49,13 +49,17 @@ internal class InstagramDialog(
             }
         }
         val dialog = runCatching { native(activity, title, labels, onClick) }
-            .onFailure { log("Instagram's dialog failed, showing a plain one: $it") }
+            .onFailure { log("Instagram's dialog failed, showing a theme-aware plain one: $it") }
             .getOrNull()
-            ?: AlertDialog.Builder(activity)
-                .setTitle(title)
-                .setItems(labels, onClick)
-                .setNegativeButton(CLOSE) { dialog, _ -> dialog.dismiss() }
-                .create()
+            ?: run {
+                val isDark = (activity.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+                val themeRes = if (isDark) android.R.style.Theme_DeviceDefault_Dialog_Alert else android.R.style.Theme_DeviceDefault_Light_Dialog_Alert
+                AlertDialog.Builder(activity, themeRes)
+                    .setTitle(title)
+                    .setItems(labels, onClick)
+                    .setNegativeButton(CLOSE) { dialog, _ -> dialog.dismiss() }
+                    .create()
+            }
         dialog.show()
     }
 
