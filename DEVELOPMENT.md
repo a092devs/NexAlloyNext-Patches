@@ -6,7 +6,7 @@ loaded, the bundle format and the rules for bundles are described in its
 
 ```text
 📦 NexAlloyNext-Patches
- ├ build-logic/    The nexalloy.bundle Gradle plugin (copy of NexAlloyNext's)
+ ├ build-logic/    Removed; nexalloy.bundle is consumed from NexAlloyNext's Maven repository
  ├ bundles/
  │  ├ nexalloy/    NexAlloy Patches: Morphe, ReVanced and hoodles patches
  │  ├ nexfusion/    NexFusion Patches: community ports (Discord, Facebook, Gboard, Instagram, LinkedIn, MiXplorer, Proton VPN, Reddit, Spotify, X)
@@ -22,6 +22,28 @@ there and pass `-PnexalloyMaven=file:///path/to/NexAlloyNext/build/maven` here.
 ```sh
 ./gradlew assembleBundle   # bundles/*/build/outputs/bundle/*.nxb
 ```
+
+The `nexalloy.bundle` convention plugin is also published by NexAlloyNext. Its
+version is pinned as `nexalloyBuildLogic` in
+[libs.versions.toml](gradle/libs.versions.toml). Update that version only after
+the corresponding plugin has been published.
+
+### Upstream submodules
+
+`morphe-patches` and `morphe-patches-library` are NexAlloy-maintained forks
+of the upstream extension projects. Changes to files inside either submodule
+must be committed and pushed in that submodule first, then the resulting
+submodule commit must be updated in this repository:
+
+```sh
+git -C morphe-patches checkout nexalloy
+git -C morphe-patches pull --ff-only
+git add morphe-patches
+git commit -m "chore: update morphe-patches"
+```
+
+Do not edit generated `build/` output or local `binaries/` APKs for a
+release. Both are intentionally excluded from version control.
 
 ### Adding an app
 

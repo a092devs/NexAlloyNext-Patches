@@ -1,6 +1,6 @@
 pluginManagement {
-    includeBuild("build-logic")
     repositories {
+        maven(url = "https://raw.githubusercontent.com/a092devs/NexAlloyNext/maven")
         google {
             content {
                 includeGroupByRegex("com\\.android.*")

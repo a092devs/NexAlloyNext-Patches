@@ -5,6 +5,13 @@ automatically on every push to `main` for the version of the first `X.Y.Z` secti
 version has no release yet. The section matching the release tag becomes the release notes,
 falling back to generated commit notes when no section exists.
 
+## Unreleased
+
+- Build: Removed the duplicated local `build-logic` copy and pinned the
+  `nexalloy.bundle` plugin to the version published by NexAlloyNext.
+- Security: Added repository secret scanning and documented handling for
+  client-side API keys and release signing identity.
+
 ## 3.3.10
 
 - `NexFusion` 3.3.10:

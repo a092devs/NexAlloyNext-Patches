@@ -83,7 +83,7 @@ identity, with per-patch attribution in
 ## Development
 
 Each bundle is a Gradle module under `bundles/`, registered in `settings.gradle.kts` and built
-with the local `nexalloy.bundle` plugin (see `build-logic/`). To build one bundle:
+with the version-pinned `nexalloy.bundle` plugin from the NexAlloyNext Maven repository. To build one bundle:
 
 ```bash
 ./gradlew :bundles:<name>:assembleBundle

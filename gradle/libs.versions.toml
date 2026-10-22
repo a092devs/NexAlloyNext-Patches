@@ -1,6 +1,7 @@
 [versions]
 # NexAlloy patcher API the bundles compile against.
 patcher = "2.0.0"
+nexalloyBuildLogic = "1.0.0"
 agp = "9.2.1"
 dexkit = "2.3.0"
 xposed = "82"
@@ -42,6 +43,7 @@ collections4 = { module = "org.apache.commons:commons-collections4", version.ref
 lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "lang3" }
 
 [plugins]
+nexalloy-bundle = { id = "nexalloy.bundle", version.ref = "nexalloyBuildLogic" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 

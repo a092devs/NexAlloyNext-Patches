@@ -1,0 +1,7 @@
+[allowlist]
+description = "Known client-side YouTube API keys used by upstream Android flows"
+regexes = [
+  '''AIzaSyAOghZGza2MQSZkY_zfZ370N-PUdXEo8AI''',
+  '''AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30''',
+  '''AIzaSyDyT5W0Jh49F30Pqqtyfdf7pDLFKLJoAnw''',
+]
