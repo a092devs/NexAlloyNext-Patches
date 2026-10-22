@@ -202,7 +202,12 @@ bundles/nexfusion/src/main/java/io/github/nexalloy/nexfusion/spotify/premium/ an
 app/twoeno/extension/spotify/UnlockPremiumPatch.java. The now playing brand-ad section removal
 (app/twoeno/extension/spotify/HideNpvBrandAdsPatch.java) is the same upstream logic, wired into
 the "Hide ad sections" patch. The attribute table and the 9.1.90+ class renames were taken from
-the Femify fork family that ships these hooks for recent Spotify builds.
+the Femify fork family that ships these hooks for recent Spotify builds. The "Show unplayable
+songs" hook — locating the `show_unavailable_tracks` field through Spotify's generated
+`SettingsState` serializer (with the older Kotlin property-reference fallback) and forcing it on
+every freshly built settings state — is ported from yobreehs/yfimeF as well, re-implemented in
+bundles/nexfusion/src/main/java/io/github/nexalloy/nexfusion/spotify/misc/ShowUnavailableTracksPatch.kt
+and bundles/nexfusion/src/main/java/io/github/nexalloy/nexfusion/spotify/Fingerprints.kt.
 ================================================================================
 
 

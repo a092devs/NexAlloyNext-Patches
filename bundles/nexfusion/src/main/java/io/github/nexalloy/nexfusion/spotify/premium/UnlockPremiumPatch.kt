@@ -28,8 +28,9 @@ val UnlockPremium = patch(
     name = "Unlock Spotify Premium",
     description = "Unlocks on-demand playback, unforced shuffle, unlimited skips and the Premium " +
         "settings UI, and adds the popular tracks back to artist pages. Spotify restricts " +
-        "accounts that use modified clients (#3), so this is disabled by default and should not " +
-        "be enabled on an account you cannot lose.",
+        "accounts that use modified clients (#3): playback can stop after about 9 seconds and " +
+        "no client hook can undo that server-side check. This is disabled by default and should " +
+        "not be enabled on an account you cannot lose.",
     use = false,
 ) {
     // The account attributes of the remote config product state drive the playback restrictions

@@ -11,7 +11,9 @@ import io.github.nexalloy.morphe.findMethodListDirect
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.query.enums.StringMatchType
 import org.luckypray.dexkit.query.enums.UsingType
+import org.luckypray.dexkit.result.FieldData
 import org.luckypray.dexkit.result.MethodData
+import java.lang.reflect.Modifier
 
 // region Ads
 
@@ -311,6 +313,100 @@ val playerOptionOverridesBuilderClass = findClassDirect {
             )
         }
     }.single()
+}
+
+// endregion
+
+// region Settings
+
+private const val SETTINGS_STATE_SERIAL_NAME = "com.spotify.settings.rxsettings.SettingsState"
+
+/**
+ * Locates the boolean field of the settings state class through its generated
+ * kotlinx.serialization serializer.
+ *
+ * The state class is `@Serializable`, so Spotify ships a generated serializer for it: a class
+ * that registers the serial name (`com.spotify.settings.rxsettings.SettingsState`) together with
+ * every element name (`offline_mode`, `show_unavailable_tracks`, …) in its static initializer and
+ * whose `deserialize` method instantiates the (obfuscated) state class from those elements. The
+ * element order of the serializer is the constructor parameter order, which in turn is the field
+ * declaration order of the state class, so the requested element maps to the field with the same
+ * index.
+ *
+ * This survives obfuscation because serial names are string literals.
+ *
+ * Ported from Femify (`yobreehs/yfimeF`, `io.github.chsbuffer.revancedxposed.spotify.misc.Fingerprints`),
+ * GPL-3.0.
+ */
+private fun DexKitBridge.settingsStateFieldBySerializer(elementName: String): FieldData {
+    val serializerClass = findMethod { matcher { usingStrings(elementName) } }
+        .mapNotNull { it.declaredClass }
+        .distinct()
+        .firstOrNull { candidate ->
+            candidate.methods.any { method ->
+                method.invokes.any { it.isConstructor && it.paramCount >= 10 }
+            }
+        } ?: error("SettingsState serializer not found")
+
+    val descriptorInit = serializerClass.methods.first { it.usingStrings.contains(elementName) }
+    val strings = descriptorInit.usingStrings
+    val serialNameIndex = strings.indexOf(SETTINGS_STATE_SERIAL_NAME)
+    require(serialNameIndex >= 0) { "Serial name not found in ${serializerClass.descriptor}" }
+    val elementIndex = strings.indexOf(elementName) - serialNameIndex - 1
+    require(elementIndex >= 0) { "Element $elementName not found in ${serializerClass.descriptor}" }
+
+    val stateConstructor = serializerClass.methods
+        .flatMap { it.invokes }
+        .filter { it.isConstructor && it.paramCount >= 10 }
+        .maxByOrNull { it.paramCount }
+        ?: error("SettingsState constructor not found in ${serializerClass.descriptor}")
+    val stateClass = stateConstructor.declaredClass
+        ?: error("SettingsState class not found in ${stateConstructor.descriptor}")
+
+    val fields = stateClass.fields.filter { !Modifier.isStatic(it.modifiers) }
+    val field = fields.getOrNull(elementIndex)
+        ?: error("No field #$elementIndex in ${stateClass.descriptor}")
+    require(field.typeName == "boolean") {
+        "Field ${field.descriptor} for $elementName is not boolean"
+    }
+    return field
+}
+
+/**
+ * Legacy lookup through the generated `…showUnavailableTracks` property reference: the property
+ * reference class is the one that mentions the literal `showUnavailableTracks()Z` and has the
+ * `get(Object):Object` accessor that reads the field. Those property references disappeared in
+ * Spotify 9.1.92.
+ */
+private fun DexKitBridge.settingsStateFieldByPropertyReference(propertyName: String): FieldData {
+    val propertyReferenceClass = findMethod { matcher { usingStrings("${propertyName}()Z") } }
+        .mapNotNull { it.declaredClass }
+        .distinct()
+        .firstOrNull { candidate ->
+            candidate.methods.any { method ->
+                method.name == "get" &&
+                    method.returnTypeName == "java.lang.Object" &&
+                    method.paramTypeNames == listOf("java.lang.Object")
+            }
+        } ?: error("Property reference class for $propertyName not found")
+
+    val getter = propertyReferenceClass.methods.first { method ->
+        method.name == "get" &&
+            method.returnTypeName == "java.lang.Object" &&
+            method.paramTypeNames == listOf("java.lang.Object")
+    }
+    return getter.usingFields.single().field
+}
+
+/**
+ * The boolean field backing Spotify's own "Show unplayable songs" setting (`show_unavailable_tracks`
+ * in the server-synced settings state). The state class is obfuscated and its consumers read the
+ * field directly, so the patch sets it on every freshly built state.
+ */
+val showUnavailableTracksField = findFieldDirect {
+    runCatching { settingsStateFieldBySerializer("show_unavailable_tracks") }
+        .recoverCatching { settingsStateFieldByPropertyReference("showUnavailableTracks") }
+        .getOrThrow()
 }
 
 // endregion

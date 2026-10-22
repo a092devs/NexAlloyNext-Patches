@@ -5,6 +5,14 @@ automatically on every push to `main` for the version of the first `X.Y.Z` secti
 version has no release yet. The section matching the release tag becomes the release notes,
 falling back to generated commit notes when no section exists.
 
+## 3.3.10
+
+- `NexFusion` 3.3.10:
+  * Gboard: Removed the forced `show_suggestion_strip` override. The suggestion-strip toggle is a genuine user preference again and no longer resets on every Gboard start; the writing-tools patch only seeds the keys it actually needs. If the strip is currently forced on, turn it off once after updating — the choice now persists.
+  * Reddit: Added support for Reddit 2026.42.0 and verified every Reddit fingerprint against it (release of October 16, 2026). Target list now includes 2026.42.0, 2026.41.0, 2026.38.0 and older builds.
+  * Spotify: Ported Femify's "Show unplayable songs" patch. It forces `show_unavailable_tracks` on every freshly built settings state, so tracks that cannot be played (wrong market, removed, …) stay visible in collections instead of being hidden. Anchors verified against Spotify 9.1.90.2270 and 9.1.92.3058.
+  * Spotify: The "songs skip after about 9 seconds" behavior is a server-side account restriction. Femify's updated source contains the same attribute overrides as NexFusion and no client-side fix, and ReVanced's removed "Spoof client" patch cannot be ported to runtime hooks. `Unlock Spotify Premium` stays opt-in, and its description now warns about the 9-second cutoff.
+
 ## 3.3.9
 
 - `NexAlloy` 1.0.12:

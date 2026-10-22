@@ -155,7 +155,6 @@ fun PatchExecutor.enableGboardWritingToolsPreference() {
             "pref_key_writing_tools_screen_context_opt_in" to true,
             "pref_key_writing_tools_screen_context_opt_in_v1" to true,
             "pref_key_writing_tools_enable_pi_override" to true,
-            "show_suggestion_strip" to true,
             "pref_key_stop_dictation_after_sending_writing_tools_v2_prompts" to false,
             "has_reorganized_access_points_order" to true,
             "jarvis_consent_history" to true,
