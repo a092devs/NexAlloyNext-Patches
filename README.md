@@ -146,12 +146,13 @@ NexAlloyNext discovers bundles through **patch sources**. A source is either:
 The curated default source is [`a092devs/NexAlloyNext-Patches`](https://github.com/a092devs/NexAlloyNext-Patches);
 further known sources can be added with one tap in the manager's Patches tab.
 
-Releases are automated in [`.github/workflows/release.yml`](.github/workflows/release.yml):
-pushing a tag matching `*.*.*` (or dispatching the workflow with a tag) runs the unit tests,
-builds every bundle with `assembleBundle`, verifies that each generated `.nxb` is non-empty, and
-attaches them to the GitHub release — hyphenated tags are published as pre-releases.
-[`.github/workflows/android.yml`](.github/workflows/android.yml) runs the same tests and build
-verification on every push and pull request.
+[`.github/workflows/android.yml`](.github/workflows/android.yml) runs unit tests and bundle
+verification on every push and pull request. After a successful push to `main`, it checks the first
+versioned section in `CHANGELOG.md` and dispatches
+[`.github/workflows/release.yml`](.github/workflows/release.yml) when that release does not exist.
+The release workflow runs the tests again, performs a clean release bundle build, verifies every
+`.nxb`, and publishes the release. Hyphenated versions are published as pre-releases. Manual
+dispatch is also available for controlled releases.
 
 ---
 

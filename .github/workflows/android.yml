@@ -60,18 +60,14 @@ jobs:
                   path: bundles/*/build/outputs/bundle/*.nxb
 
     auto-release:
-        name: Auto release
+        name: Trigger release build
         needs: build
         if: github.event_name == 'push'
         runs-on: ubuntu-latest
 
         permissions:
-            contents: write
+            contents: read
             actions: write
-
-        concurrency:
-            group: auto-release
-            cancel-in-progress: false
 
         steps:
             - uses: actions/checkout@v6
@@ -90,12 +86,13 @@ jobs:
                     exit 1
                   fi
 
-                  echo "Resolved release version: $VERSION"
-
                   if gh release view "$VERSION" >/dev/null 2>&1; then
                     echo "Release $VERSION already exists; nothing to release."
                     exit 0
                   fi
 
-                  gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" -f tag="$VERSION"
-                  echo "Dispatched the release workflow for $VERSION."
+                  gh workflow run release.yml \
+                    --repo "$GITHUB_REPOSITORY" \
+                    --ref "$GITHUB_REF_NAME" \
+                    -f tag="$VERSION"
+                  echo "Dispatched release build for $VERSION."
