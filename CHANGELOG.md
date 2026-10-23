@@ -7,6 +7,17 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.4.3
+
+- `NexAlloy` 1.0.15:
+  * YouTube Client Identity & Layout: Completely eliminated internal `isAutomotive` context overrides and InnerTube `osName: "Android Automotive"` endpoint spoofing from `HideAdsPatch` and `AdsFilter`. YouTube operates strictly as a standard Android phone client, fully restoring the native portrait video player, classic 5-tab bottom navigation (`Home`, `Shorts`, `+`, `Subscriptions`, `You`), and eliminating tablet/dashboard split mode.
+  * YouTube Watch History: Fully restored user Watch History shelf (`library_recent_shelf` / `FEhistory`) on the "You" tab and continuous playback tracking by serving standard Android InnerTube browse and player payloads.
+  * Preferences Defaults Migration: Added one-time migration (`nexalloy_defaults_migrated_v4`) in `Settings.java` resetting stale stored preferences on existing installs (`swap_create_with_notifications` -> false, `hide_horizontal_shelves` -> false, `hide_get_premium` -> true, `hide_youtube_premium_menu` -> true, `hide_shorts` -> false, `hide_subscriptions` -> false, `hide_create` -> false).
+  * SponsorBlock Controls: Re-enabled standard controls overlay bindings (`size_adjustable_youtube_controls_overlay`), allowing SponsorBlock skip buttons, segment markers, and automated skip logic to seamlessly render on the phone player layout.
+  * Settings Branding & Links: Updated Morphe About dialog branding to "NexAlloyNext", updated links to developer GitHub repository (`https://github.com/a092devs/NexAlloyNext`), developer profile (`https://github.com/a092devs`), and Telegram (`https://t.me/a092devs`), and removed legacy third-party donation links.
+- `NexFusion` 3.4.3:
+  * Developer Attribution: Cleaned legacy developer references across Spotify and media session modules, aligning attribution with `a092devs`.
+
 ## 3.4.2
 
 - `NexAlloy` 1.0.14:

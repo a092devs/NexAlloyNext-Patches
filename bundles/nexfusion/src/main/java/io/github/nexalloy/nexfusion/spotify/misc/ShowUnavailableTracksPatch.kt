@@ -8,7 +8,7 @@ import io.github.nexalloy.nexfusion.spotify.showUnavailableTracksField
 import io.github.nexalloy.patch
 
 // Ported from Femify (`yobreehs/yfimeF`),
-// app/src/main/java/io/github/chsbuffer/revancedxposed/spotify/misc/ShowUnavailableTracksPatch.kt,
+// app/src/main/java/io/github/a092devs/revancedxposed/spotify/misc/ShowUnavailableTracksPatch.kt,
 // GPL-3.0.
 
 /**

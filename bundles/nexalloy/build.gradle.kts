@@ -19,7 +19,7 @@ android {
 
     defaultConfig {
         applicationId = "io.github.nexalloy.patches"
-        versionCode = 14
+        versionCode = 15
         val patchVersion = Properties().apply {
             rootProject.file("morphe-patches/gradle.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
         }["version"]

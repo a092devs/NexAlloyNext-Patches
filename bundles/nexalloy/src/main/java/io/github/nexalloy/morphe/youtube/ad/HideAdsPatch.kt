@@ -71,12 +71,6 @@ val HideAds = patch(
         }
     }
 
-    BuildClientContextBodyConstructorFingerprint.hookMethod(scopedHook(::BuildClientContextIsAutomotive.method) {
-        after {
-            it.result = AdsFilter.hideAds(it.result as Boolean)
-        }
-    })
-
     // Hide YouTube Premium promotions
 
     hookElement(AdsFilter::hideStatementBanner)
@@ -129,30 +123,4 @@ val HideAds = patch(
 
     // TODO Hide paid promotion label in miniplayer
 
-    setOf(
-        Endpoint.BROWSE,
-        Endpoint.SEARCH,
-        Endpoint.NEXT,
-    ).forEach { endpoint ->
-        addOSNameHook(
-            endpoint,
-            AdsFilter::hideAds
-        )
-    }
-
-    setOf(
-        Endpoint.GET_WATCH,
-        Endpoint.PLAYER,
-        Endpoint.REEL,
-    ).forEach { endpoint ->
-        addOSNameHook(
-            endpoint,
-            AdsFilter::hideVideoAds
-        )
-    }
-
-    addOSNameHook(
-        Endpoint.GUIDE,
-        AdsFilter::overrideGuideOSName
-    )
 }

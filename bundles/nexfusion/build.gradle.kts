@@ -11,8 +11,8 @@ android {
 
     defaultConfig {
         applicationId = "io.github.nexalloy.patches.nexfusion"
-        versionCode = 37
-        versionName = "3.4.2"
+        versionCode = 38
+        versionName = "3.4.3"
     }
 }
 

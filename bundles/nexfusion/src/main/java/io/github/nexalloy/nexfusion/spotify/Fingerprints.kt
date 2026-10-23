@@ -335,7 +335,7 @@ private const val SETTINGS_STATE_SERIAL_NAME = "com.spotify.settings.rxsettings.
  *
  * This survives obfuscation because serial names are string literals.
  *
- * Ported from Femify (`yobreehs/yfimeF`, `io.github.chsbuffer.revancedxposed.spotify.misc.Fingerprints`),
+ * Ported from Femify (`yobreehs/yfimeF`, `io.github.a092devs.revancedxposed.spotify.misc.Fingerprints`),
  * GPL-3.0.
  */
 private fun DexKitBridge.settingsStateFieldBySerializer(elementName: String): FieldData {

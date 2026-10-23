@@ -159,7 +159,7 @@ dispatch is also available for controlled releases.
 ## Credits & Acknowledgments
 
 - [2eno](https://github.com/2eno): The upstream project this repository is built upon ([2eno/NexAlloyNext-Patches](https://github.com/2eno/NexAlloyNext-Patches), whose consolidated history forms the base of this repository), plus the Spotify and Google Ads runtime hook extensions
-- [NexAlloy](https://github.com/NexAlloy/NexAlloy): The original LSPosed patcher concept by ChsBuffer
+- [NexAlloy](https://github.com/NexAlloy/NexAlloy): The original LSPosed patcher concept by a092devs
 - [Morphe](https://morphe.software): Bytecode runtime hook patterns and extensions
 - [ReVanced](https://revanced.app): Feature specifications and research
 - [Piko](https://github.com/crimera/piko): Instagram and Twitter runtime hook logic
