@@ -1,4 +1,4 @@
-package app.twoeno.extension.shared;
+package io.github.nexalloy.nexfusion.extension.shared;
 
 import java.util.Locale;
 import java.util.regex.Matcher;

@@ -1,10 +1,10 @@
-package app.twoeno.extension.spotify;
+package io.github.nexalloy.nexfusion.extension.spotify;
 
 import java.util.Iterator;
 import java.util.List;
 
-import app.twoeno.extension.shared.Logger;
-import app.twoeno.extension.shared.Reflection;
+import io.github.nexalloy.nexfusion.extension.shared.Logger;
+import io.github.nexalloy.nexfusion.extension.shared.Reflection;
 
 /**
  * Removes brand ad sections from the home and browse (search) pages.

@@ -50,16 +50,8 @@ val NavigationBarHook = patch(
             PivotBarButtonsCreateResourceStyledViewFingerprint.member
         ) {
             after {
-                val isYouTab = runCatching {
-                    Utils.getChildViewByResourceName<View>(
-                        it.result as ViewGroup,
-                        "you_tab_border"
-                    ) ?: throw Exception("You tab border not found")
-                }.isSuccess
-                if (isYouTab) {
-                    NavigationBar.setLastAppNavigationEnumYou()
-                }
-
+                // The 'You' tab has no YT enum name; upstream detects it inside
+                // navigationTabLoaded by comparing the last loaded enum.
                 NavigationBar.navigationTabLoaded(it.result as View)
             }
         })
@@ -114,12 +106,18 @@ val NavigationBarHook = patch(
             val layout = it.result as FrameLayout
             val toolbar = Utils.getChildView<View>(
                 layout, false
-            ) { it: View -> appCompatToolbarClass.isAssignableFrom(it.javaClass) }
-            NavigationBar.setToolbar(toolbar.createProxy { impl ->
+            ) { it: View -> appCompatToolbarClass.isAssignableFrom(it.javaClass) } ?: return@after
+            // The obfuscated toolbar does not implement the extension's patch interface (upstream
+            // injects it during bytecode patching), so hand the extension's toolbar reference
+            // field a forwarding proxy of the interface directly.
+            val proxy = toolbar.createProxy { impl ->
                 NavigationBar.AppCompatToolbarPatchInterface {
                     getNavigationIcon(impl.get()) as Drawable?
                 }
-            })
+            }
+            NavigationBar::class.java.getDeclaredField("toolbarResultsRef")
+                .apply { isAccessible = true }
+                .set(null, java.lang.ref.WeakReference(proxy))
         }
     })
 

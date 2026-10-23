@@ -1,6 +1,6 @@
-package app.twoeno.extension.spotify;
+package io.github.nexalloy.nexfusion.extension.spotify;
 
-import app.twoeno.extension.shared.LinkSanitizer;
+import io.github.nexalloy.nexfusion.extension.shared.LinkSanitizer;
 
 /**
  * Removes the {@code si} and {@code utm_source} tracking parameters from shared and copied links.

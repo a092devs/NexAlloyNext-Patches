@@ -1,4 +1,4 @@
-package app.twoeno.extension.spotify;
+package io.github.nexalloy.nexfusion.extension.spotify;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import app.twoeno.extension.shared.Logger;
+import io.github.nexalloy.nexfusion.extension.shared.Logger;
 
 /**
  * Removes the "Premium" tab from the bottom navigation bar.

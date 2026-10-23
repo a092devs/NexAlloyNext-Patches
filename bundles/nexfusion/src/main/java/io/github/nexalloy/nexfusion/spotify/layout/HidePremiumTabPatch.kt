@@ -1,6 +1,6 @@
 package io.github.nexalloy.nexfusion.spotify.layout
 
-import app.twoeno.extension.spotify.HidePremiumTabPatch
+import io.github.nexalloy.nexfusion.extension.spotify.HidePremiumTabPatch
 import io.github.nexalloy.patch
 import io.github.nexalloy.nexfusion.spotify.navigationTabSetConstructor
 

@@ -6,6 +6,7 @@ import app.morphe.extension.youtube.settings.preference.CustomVideoSpeedListPref
 import io.github.nexalloy.morphe.shared.misc.settings.preference.ListPreference
 import io.github.nexalloy.morphe.shared.misc.settings.preference.NonInteractivePreference
 import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreference
+import io.github.nexalloy.morphe.youtube.misc.settings.PreferenceScreen
 import io.github.nexalloy.morphe.youtube.shared.InitializePlaybackSpeedValuesFingerprint
 import io.github.nexalloy.morphe.youtube.video.information.PlaybackSpeedMenu
 import io.github.nexalloy.morphe.youtube.video.information.VideoInformationPatch
@@ -43,6 +44,17 @@ val RememberPlaybackSpeed = patch {
             SwitchPreference("morphe_remember_playback_speed_last_selected", summary = true),
             SwitchPreference("morphe_remember_playback_speed_last_selected_toast", summary = true),
             SwitchPreference("morphe_disable_playback_speed_music", summary = true)
+        )
+    )
+
+    // The Shorts speed belongs with the other Shorts settings.
+    PreferenceScreen.SHORTS.addPreferences(
+        ListPreference(
+            key = "morphe_shorts_playback_speed_default",
+            // Entries and values are set by the extension code based on the actual speeds available.
+            entriesKey = null,
+            entryValuesKey = null,
+            tag = CustomVideoSpeedListPreference::class.java
         )
     )
 

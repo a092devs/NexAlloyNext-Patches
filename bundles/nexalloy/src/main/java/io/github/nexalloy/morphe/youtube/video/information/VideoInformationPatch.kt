@@ -188,16 +188,27 @@ val VideoInformationPatch = patch(
     )
 
     /*
+     * Forward the live state of every player response to the extension, used by the playback
+     * speed for Shorts and the skip live Shorts features (upstream 3731d97f6).
+     */
+    ::channelInformationMethods.dexMethodList.forEach { dexMethod ->
+        addLiveStreamDetection(dexMethod)
+    }
+
+    /*
      * Set the video time method
      * Note: This fingerprint may not match all YouTube versions; made optional so
      * VideoInformationPatch still applies even if video time tracking is unavailable.
      */
-    val timeMethodRef = runCatching { ::timeMethod }.getOrNull()
-    timeMethodRef?.hookMethod {
-        before { param ->
-            val videoTime = param.args[0] as Long
-            videoTimeHooks.forEach { it(videoTime) }
+    runCatching {
+        ::timeMethod.hookMethod {
+            before { param ->
+                val videoTime = param.args[0] as Long
+                videoTimeHooks.forEach { it(videoTime) }
+            }
         }
+    }.onFailure { e ->
+        Logger.printDebug { "VideoInformationPatch: timeMethod hook skipped: ${e.message}" }
     }
 
     // region Hook the user playback speed selection.
@@ -365,4 +376,73 @@ internal fun PatchExecutor.addExoPlayerHooks() {
         }
     }
 
+}
+
+/**
+ * Live stream detection (port of the upstream ChannelInformationFingerprint injection, upstream
+ * commit 3731d97f6): every method that receives the player response of the current video reports
+ * the live state to the extension. The exact boolean getter of the player response is resolved
+ * the first time a wrapper runs, by capturing which of the response's own zero-argument boolean
+ * methods is invoked first (the same call upstream fingerprints as the live getter).
+ */
+private object LiveStreamDetectionState {
+    @Volatile var liveStateMethod: Method? = null
+    val resolutionLock = Any()
+    var candidateHooksInstalled = false
+    val wrapperDepth: ThreadLocal<Int> = ThreadLocal.withInitial { 0 }
+}
+
+internal fun PatchExecutor.addLiveStreamDetection(dexMethod: org.luckypray.dexkit.wrap.DexMethod) {
+    dexMethod.hookMethod {
+        before { param ->
+            val depth = LiveStreamDetectionState.wrapperDepth.get() ?: 0
+            LiveStreamDetectionState.wrapperDepth.set(depth + 1)
+
+            val response = param.args[0] ?: return@before
+            if (depth > 0) return@before
+
+            synchronized(LiveStreamDetectionState.resolutionLock) {
+                val liveStateMethod = LiveStreamDetectionState.liveStateMethod
+                if (liveStateMethod != null) {
+                    runCatching {
+                        VideoInformation.setLiveStream(liveStateMethod.invoke(response) as Boolean)
+                    }
+                } else if (!LiveStreamDetectionState.candidateHooksInstalled) {
+                    LiveStreamDetectionState.candidateHooksInstalled = true
+                    installLiveStateCandidateHooks(response.javaClass)
+                }
+            }
+        }
+        after {
+            val depth = LiveStreamDetectionState.wrapperDepth.get() ?: 0 - 1
+            LiveStreamDetectionState.wrapperDepth.set(if (depth > 0) depth else 0)
+        }
+    }
+}
+
+private fun PatchExecutor.installLiveStateCandidateHooks(responseClass: Class<*>) {
+    val candidates = responseClass.declaredMethods.filter {
+        it.parameterTypes.isEmpty() &&
+            it.returnType == java.lang.Boolean.TYPE &&
+            !java.lang.reflect.Modifier.isStatic(it.modifiers) &&
+            !it.isBridge && !it.isSynthetic
+    }
+    for (candidate in candidates) {
+        runCatching {
+            candidate.hookMethod {
+                after { param ->
+                    // Only capture calls made while a channel information method is executing,
+                    // and only the first one (upstream matches the first `Z` call of the player
+                    // response type in the wrapper).
+                    if ((LiveStreamDetectionState.wrapperDepth.get() ?: 0) > 0 &&
+                        LiveStreamDetectionState.liveStateMethod == null
+                    ) {
+                        val isLive = param.result as? Boolean ?: return@after
+                        LiveStreamDetectionState.liveStateMethod = candidate
+                        runCatching { VideoInformation.setLiveStream(isLive) }
+                    }
+                }
+            }
+        }
+    }
 }

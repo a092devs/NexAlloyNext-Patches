@@ -322,4 +322,19 @@ internal object ShareLinkFormatterFingerprint : Fingerprint(
     ),
 )
 
+/**
+ * Video download, which is enqueued with the download manager.
+ */
+internal object DownloadVideoFingerprint : Fingerprint(
+    returnType = "V",
+    filters = listOf(
+        methodCall(
+            opcode = Opcode.INVOKE_DIRECT,
+            definingClass = "Landroid/app/DownloadManager${'$'}Request;",
+            name = "<init>"
+        ),
+        string("DownloadManager_not_available"),
+    ),
+)
+
 

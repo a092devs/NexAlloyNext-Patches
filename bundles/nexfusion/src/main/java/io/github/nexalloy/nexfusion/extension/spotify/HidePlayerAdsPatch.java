@@ -1,4 +1,4 @@
-package app.twoeno.extension.spotify;
+package io.github.nexalloy.nexfusion.extension.spotify;
 
 /**
  * Disables ads embedded into playlists and video ads in the now playing view.

@@ -1,6 +1,6 @@
 package io.github.nexalloy.nexfusion.spotify.premium
 
-import app.twoeno.extension.spotify.UnlockPremiumPatch
+import io.github.nexalloy.nexfusion.extension.spotify.UnlockPremiumPatch
 import de.robv.android.xposed.XposedHelpers
 import io.github.nexalloy.PatcherLog
 import io.github.nexalloy.callMethodOrNull

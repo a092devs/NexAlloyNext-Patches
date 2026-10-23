@@ -24,6 +24,24 @@ import io.github.nexalloy.morphe.string
 
 internal const val FIXED_RESOLUTION_STRING = ", initialPlaybackVideoQualityFixedResolution="
 
+/**
+ * Client ABR state of the SABR requests sent while the video plays (upstream 3731d97f6).
+ */
+internal const val CLIENT_ABR_STATE_CLASS =
+    "Lcom/google/android/apps/youtube/proto/ClientAbrStateOuterClass\$ClientAbrState;"
+
+internal object ClientAbrStateFingerprint : Fingerprint(
+    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
+    returnType = CLIENT_ABR_STATE_CLASS,
+    filters = listOf(
+        fieldAccess(
+            opcode = Opcode.IPUT_OBJECT,
+            definingClass = CLIENT_ABR_STATE_CLASS,
+            type = "Lcom/google/android/apps/youtube/proto/streaming/MediaCapabilitiesOuterClass\$MediaCapabilities;"
+        )
+    )
+)
+
 internal object PlaybackStartParametersToStringFingerprint : Fingerprint(
     name = "toString",
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),

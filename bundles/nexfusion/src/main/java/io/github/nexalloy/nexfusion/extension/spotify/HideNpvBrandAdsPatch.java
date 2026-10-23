@@ -1,11 +1,11 @@
-package app.twoeno.extension.spotify;
+package io.github.nexalloy.nexfusion.extension.spotify;
 
 import java.lang.reflect.Field;
 import java.util.Iterator;
 import java.util.List;
 
-import app.twoeno.extension.shared.Logger;
-import app.twoeno.extension.shared.Reflection;
+import io.github.nexalloy.nexfusion.extension.shared.Logger;
+import io.github.nexalloy.nexfusion.extension.shared.Reflection;
 
 /**
  * Removes the embedded brand-ad card from the now playing view scroll feed, i.e. the ad banner

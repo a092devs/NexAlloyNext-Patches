@@ -36,6 +36,8 @@ internal object RedgifsAudioHelper {
     const val PLACEHOLDER_FALLBACK_PARAM = "fallback"
     const val METADATA_CELL_ID_PREFIX = "MetadataCell-"
 
+    private const val DOWNLOAD_WAIT_MS = 5_000L
+
     private val REDGIFS_ID_REGEX = Regex("^[a-z0-9]+$")
     private val executor = Executors.newFixedThreadPool(2)
 
@@ -212,6 +214,32 @@ internal object RedgifsAudioHelper {
             .toString()
     }
 
+    fun getDownloadUri(uri: Uri): Uri {
+        val url = getDownloadUrl(uri.toString())
+        return if (url == uri.toString()) uri else Uri.parse(url)
+    }
+
+    private fun getDownloadUrl(url: String): String {
+        val redditVideoId = getRedditVideoId(url) ?: return url
+        val id = redditVideoIdToRedgifsId[redditVideoId] ?: return url
+
+        val lookup = getLookup(id)
+        // Downloads are usually enqueued on the main thread, where the lookup can't be awaited.
+        // It started when the post was loaded, so it's usually done by now.
+        if (Looper.getMainLooper().thread != Thread.currentThread()) {
+            runCatching { lookup.done.await(DOWNLOAD_WAIT_MS, TimeUnit.MILLISECONDS) }
+        }
+
+        // Downloads aren't streamed, so the HD quality setting doesn't apply.
+        val redgifsUrl = lookup.hdUrl ?: lookup.sdUrl
+        if (redgifsUrl == null) {
+            PatcherLog.info { "RedgifsAudio: video url not found for download, using Reddit's video: $id" }
+            return url
+        }
+
+        return redgifsUrl
+    }
+
     fun resolvePlaceholderUri(uri: Uri): Uri {
         if (PLACEHOLDER_HOST != uri.host) return uri
         val path = uri.path ?: return uri
@@ -384,6 +412,23 @@ val RedgifsAudio = patch(
                 }
             }
         })
+    }
+
+    // 7. Video downloads use Reddit's video url of the post, which the player hooks don't change.
+    // The url is replaced where the download is enqueued, so other patches still see Reddit's url.
+    runCatching {
+        XposedBridge.hookAllConstructors(
+            classLoader.loadClass("android.app.DownloadManager\$Request"),
+            object : XC_MethodHook() {
+                override fun beforeHookedMethod(param: MethodHookParam) {
+                    val uri = param.args.firstOrNull() as? Uri ?: return
+                    val downloadUri = RedgifsAudioHelper.getDownloadUri(uri)
+                    if (downloadUri != uri) {
+                        param.args[0] = downloadUri
+                    }
+                }
+            }
+        )
     }
 }
 

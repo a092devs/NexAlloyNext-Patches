@@ -2,12 +2,12 @@ package io.github.nexalloy.nexfusion.spotify.ads
 
 import android.media.MediaMetadata
 import android.media.session.MediaSession
-import app.twoeno.extension.spotify.BlockPopupAdsPatch
-import app.twoeno.extension.spotify.HideAdSectionsPatch
-import app.twoeno.extension.spotify.HideContextMenuUpsellsPatch
-import app.twoeno.extension.spotify.HideNpvBrandAdsPatch
-import app.twoeno.extension.spotify.HidePlayerAdsPatch
-import app.twoeno.extension.spotify.MuteAudioAdsPatch
+import io.github.nexalloy.nexfusion.extension.spotify.BlockPopupAdsPatch
+import io.github.nexalloy.nexfusion.extension.spotify.HideAdSectionsPatch
+import io.github.nexalloy.nexfusion.extension.spotify.HideContextMenuUpsellsPatch
+import io.github.nexalloy.nexfusion.extension.spotify.HideNpvBrandAdsPatch
+import io.github.nexalloy.nexfusion.extension.spotify.HidePlayerAdsPatch
+import io.github.nexalloy.nexfusion.extension.spotify.MuteAudioAdsPatch
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import io.github.nexalloy.PatcherLog

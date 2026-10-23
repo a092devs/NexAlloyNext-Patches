@@ -1,10 +1,10 @@
-package app.twoeno.extension.spotify;
+package io.github.nexalloy.nexfusion.extension.spotify;
 
 import java.lang.reflect.Field;
 import java.util.Map;
 
-import app.twoeno.extension.shared.Logger;
-import app.twoeno.extension.shared.Reflection;
+import io.github.nexalloy.nexfusion.extension.shared.Logger;
+import io.github.nexalloy.nexfusion.extension.shared.Reflection;
 
 /**
  * Client-side Spotify Premium unlock.

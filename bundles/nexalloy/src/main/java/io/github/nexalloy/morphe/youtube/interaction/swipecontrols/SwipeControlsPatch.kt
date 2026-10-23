@@ -120,7 +120,11 @@ val SwipeControls = patch(
         TextPreference("morphe_swipe_threshold", inputType = InputType.NUMBER),
     )
 
-    SwipeControlsHostActivity.hookActivity(::mainActivityClass.clazz)
+    // Host lifecycle glue: upstream injects SwipeControlsHostActivity into the MainActivity
+    // class hierarchy (setSuperClass bytecode edit), which is impossible at runtime, and the
+    // stable extension no longer carries the composition-based host (removed `hookActivity`).
+    // Until a runtime host is reintroduced, only player overlay / change-video gating hooks run.
+    println("NexAlloy: Swipe controls host not attached (upstream hierarchy injection is not portable); feature disabled")
 
     if (!is_20_34_or_greater) {
         insertLiteralOverride(45631116L, SwipeControlsHostActivity::allowSwipeChangeVideo)

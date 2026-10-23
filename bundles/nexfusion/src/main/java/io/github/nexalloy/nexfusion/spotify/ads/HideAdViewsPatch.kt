@@ -4,7 +4,7 @@ import android.app.Activity
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
-import app.twoeno.extension.spotify.HideAdViewsPatch
+import io.github.nexalloy.nexfusion.extension.spotify.HideAdViewsPatch
 import de.robv.android.xposed.XposedHelpers
 import io.github.nexalloy.PatcherLog
 import io.github.nexalloy.hookMethod

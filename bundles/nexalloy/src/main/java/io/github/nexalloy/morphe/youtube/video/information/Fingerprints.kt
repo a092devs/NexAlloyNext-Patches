@@ -10,6 +10,7 @@ import io.github.nexalloy.morphe.fieldAccess
 import io.github.nexalloy.morphe.findClassDirect
 import io.github.nexalloy.morphe.findFieldDirect
 import io.github.nexalloy.morphe.findMethodDirect
+import io.github.nexalloy.morphe.findMethodListDirect
 import io.github.nexalloy.morphe.fingerprint
 import io.github.nexalloy.morphe.literal
 import io.github.nexalloy.morphe.methodCall
@@ -55,7 +56,10 @@ internal object PlayerControllerSetTimeReferenceFingerprint : Fingerprint(
 )
 
 val timeMethod = findMethodDirect {
-    PlayerControllerSetTimeReferenceFingerprint().invokes.single { it.name == "<init>" }
+    val invokes = PlayerControllerSetTimeReferenceFingerprint().invokes
+    invokes.firstOrNull { it.name == "<init>" && it.paramTypeNames.size >= 8 }
+        ?: invokes.firstOrNull { it.name == "<init>" }
+        ?: error("timeMethod <init> not found")
 }
 
 internal object PlayerInitFingerprint : Fingerprint(
@@ -66,6 +70,23 @@ internal object PlayerInitFingerprint : Fingerprint(
         }
     }
 )
+
+/**
+ * The methods that read the player response of the current video, forwarding the live state,
+ * channel id and channel name to the extension. Port of upstream ChannelInformationFingerprint
+ * (upstream 3731d97f6), with the live `Z` call of upstream getChannelIdFingerprint reproduced by
+ * capturing which of the player response's own boolean getters is invoked first.
+ */
+internal object ChannelInformationMethodsFingerprint : Fingerprint(
+    classFingerprint = PlayerInitFingerprint,
+    filters = listOf(
+        string("loadVideo() called on LocalDirector in wrong state"),
+    )
+)
+
+val channelInformationMethods = findMethodListDirect {
+    ChannelInformationMethodsFingerprint.matchAllOrNull()?.mapNotNull { it.method } ?: emptyList()
+}
 
 internal object SeekFingerprint : Fingerprint(
     classFingerprint = PlayerInitFingerprint,

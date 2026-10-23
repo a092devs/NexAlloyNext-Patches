@@ -13,11 +13,14 @@ import io.github.nexalloy.morphe.shared.misc.debugging.experimentalBooleanFeatur
 import io.github.nexalloy.morphe.youtube.ad.HideAds
 import io.github.nexalloy.morphe.youtube.interaction.copyvideolink.CopyVideoLinkButtonPatch
 import io.github.nexalloy.morphe.youtube.interaction.downloads.Downloads
+import io.github.nexalloy.morphe.youtube.interaction.shorts.SkipLiveShorts
 import io.github.nexalloy.morphe.youtube.interaction.swipecontrols.SwipeControls
 import io.github.nexalloy.morphe.youtube.layout.buttons.action.HideVideoActionButtons
 import io.github.nexalloy.morphe.youtube.layout.buttons.navigation.NavigationBar
 import io.github.nexalloy.morphe.youtube.layout.captions.AutoCaptions
+import io.github.nexalloy.morphe.youtube.layout.captions.CaptionsInPip
 import io.github.nexalloy.morphe.youtube.layout.dearrow.deArrowPatch
+import io.github.nexalloy.morphe.youtube.layout.sponsorblock.SponsorBlock
 import io.github.nexalloy.morphe.youtube.layout.hide.ambientmode.AmbientMode
 import io.github.nexalloy.morphe.youtube.layout.hide.general.HideLayoutComponents
 import io.github.nexalloy.morphe.youtube.layout.hide.shorts.HideShortsComponents
@@ -37,6 +40,7 @@ import io.github.nexalloy.morphe.youtube.shared.YOUTUBE_MAIN_ACTIVITY_CLASS_TYPE
 import io.github.nexalloy.morphe.youtube.shared.mainActivityClass
 import io.github.nexalloy.morphe.youtube.video.audio.ForceOriginalAudio
 import io.github.nexalloy.morphe.youtube.video.codecs.DisableVideoCodecs
+import io.github.nexalloy.morphe.youtube.video.delay.VideoDelay
 import io.github.nexalloy.morphe.youtube.video.quality.VideoQuality
 import io.github.nexalloy.morphe.youtube.misc.playservice.VersionCheck
 import io.github.nexalloy.morphe.youtube.video.speed.PlaybackSpeed
@@ -111,6 +115,7 @@ val YouTubePatches = arrayOf(
     Downloads,
     HideShortsComponents,
     DisableShortsResumingOnStartup,
+    SkipLiveShorts,
     NavigationBar,
     SwipeControls,
     VideoQuality,
@@ -118,10 +123,13 @@ val YouTubePatches = arrayOf(
     HideVideoActionButtons,
     PlaybackSpeed,
     AutoCaptions,
+    CaptionsInPip,
     EnableDebugging,
     ForceOriginalAudio,
     DisableVideoCodecs,
     deArrowPatch,
+    SponsorBlock,
+    VideoDelay,
     BypassImageRegionRestrictionsPatch,
     AmbientMode,
     HideStatusBar,

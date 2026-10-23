@@ -137,6 +137,7 @@ val HideLayoutComponents = patch(
                 SwitchPreference("morphe_hide_comments_gift_button"),
                 SwitchPreference("morphe_hide_comments_info_button"),
                 SwitchPreference("morphe_hide_comments_live_chat_donators_bar"),
+                SwitchPreference("morphe_hide_comments_live_chat_scroll_to_bottom_button"),
                 SwitchPreference("morphe_hide_comments_live_chat_tooltips", summary = true),
                 SwitchPreference("morphe_hide_comments_menu_button", summary = true),
 //                SwitchPreference("morphe_hide_comments_preview_comment", summary = true),
@@ -618,6 +619,17 @@ val HideLayoutComponents = patch(
                 time_bar_entry_point_tap_container -> LayoutComponentsFilter.hideChaptersTimelineButton(
                     view
                 )
+            }
+        }
+    }
+
+    // Live chat scroll to bottom button (upstream commit 19569880c): wrap the views that the
+    // more-comments-icon finder methods return so the extension setting applies.
+    ::moreCommentsIconMethods.dexMethodList.forEach { method ->
+        method.hookMethod {
+            after { param ->
+                val view = param.result as? View ?: return@after
+                CommentsFilter.hideLiveChatScrollToBottomButton(view)
             }
         }
     }

@@ -1,4 +1,4 @@
-package app.twoeno.extension.shared;
+package io.github.nexalloy.nexfusion.extension.shared;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;

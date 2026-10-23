@@ -1,9 +1,9 @@
-package app.twoeno.extension.googleads;
+package io.github.nexalloy.nexfusion.extension.googleads;
 
 import java.lang.reflect.Method;
 
-import app.twoeno.extension.shared.Logger;
-import app.twoeno.extension.shared.Reflection;
+import io.github.nexalloy.nexfusion.extension.shared.Logger;
+import io.github.nexalloy.nexfusion.extension.shared.Reflection;
 
 /**
  * Blocks ads of React Native apps using

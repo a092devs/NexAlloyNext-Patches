@@ -1,5 +1,6 @@
 package io.github.nexalloy.morphe.shared.misc.litho.filter
 
+import app.morphe.extension.shared.StringTrieSearch
 import app.morphe.extension.shared.patches.components.Filter
 import app.morphe.extension.shared.patches.components.LithoFilterPatch
 import de.robv.android.xposed.XC_MethodReplacement
@@ -13,8 +14,28 @@ import io.github.nexalloy.patch
 import io.github.nexalloy.scopedHook
 import java.nio.ByteBuffer
 
-fun addLithoFilter(filter: Filter){
-    LithoFilterPatch.addFilter(filter)
+fun addLithoFilter(filter: Filter) {
+    // Upstream stable replaced the public `addFilter` API with a static initializer over a
+    // placeholder `filters` array (upstream replaces the array during bytecode patching).
+    // Replicate the removed registration by invoking the private registration helper directly.
+    val clazz = LithoFilterPatch::class.java
+    val filterUsingCallbacks = clazz.getDeclaredMethod(
+        "filterUsingCallbacks",
+        StringTrieSearch::class.java,
+        Filter::class.java,
+        List::class.java,
+        Filter.FilterContentType::class.java,
+    ).apply { isAccessible = true }
+    val identifierSearchTree = clazz.getDeclaredField("identifierSearchTree")
+        .apply { isAccessible = true }.get(null)
+    val pathSearchTree = clazz.getDeclaredField("pathSearchTree")
+        .apply { isAccessible = true }.get(null)
+    filterUsingCallbacks.invoke(
+        null, identifierSearchTree, filter, filter.identifierCallbacks, Filter.FilterContentType.IDENTIFIER
+    )
+    filterUsingCallbacks.invoke(
+        null, pathSearchTree, filter, filter.pathCallbacks, Filter.FilterContentType.PATH
+    )
 }
 
 

@@ -121,7 +121,7 @@ class FingerprintsKtTest(val apkPath: Path) {
      */
     private fun testValProperties(app: String, clazz: Class<*>) {
         clazz.methods.asSequence()
-            .filter { it.isStatic }
+            .filter { it.isStatic && it.parameterCount == 0 }
             .sortedBy { it.name }
             .forEach { method ->
                 val name = method.name.drop(3) // drop "get" prefix

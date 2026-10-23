@@ -1,6 +1,7 @@
 package io.github.nexalloy.morphe.youtube.video.quality
 
 import app.morphe.extension.youtube.patches.playback.quality.RememberVideoQualityPatch
+import com.google.protobuf.MessageLite
 import io.github.nexalloy.getIntField
 import io.github.nexalloy.morphe.shared.misc.settings.preference.ListPreference
 import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreference
@@ -50,7 +51,24 @@ val RememberVideoQuality = patch {
     )
 
     insertLiteralOverride(45408049L, RememberVideoQualityPatch::useInitialVideoQuality)
-    insertLiteralOverride(45738253L, RememberVideoQualityPatch::sendQualityConstraintToServer)
+
+    /*
+     * The server chooses the quality of SABR streams from the client ABR state sent with each
+     * request. The first request of a video sends the initial video quality as the sticky
+     * resolution, but the requests sent while the video plays have none, so the server can
+     * switch to another quality. Forward every built ClientAbrState to the extension. Upstream
+     * injects a patch_overrideClientAbrState wrapper over each return of the SABR request
+     * builder; at runtime the same call is made from this after-hook (upstream 3731d97f6).
+     */
+    ClientAbrStateFingerprint.hookMethod {
+        after {
+            val original = it.result as? MessageLite ?: return@after
+            val overridden = RememberVideoQualityPatch.overrideClientAbrState(original) ?: return@after
+            it.result = original.javaClass
+                .getMethod("parseFrom", ByteArray::class.java)
+                .invoke(null, overridden)
+        }
+    }
 
     // Inject a call to override initial video quality.
     ::PlaybackStartParametersInit.hookMethod {

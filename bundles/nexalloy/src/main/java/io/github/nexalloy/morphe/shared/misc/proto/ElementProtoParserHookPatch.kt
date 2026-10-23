@@ -35,11 +35,11 @@ internal fun createElementProtoParserHookPatch(
     }
 
     if (readsResourcesWithParser()) {
-        // On YouTube 21.40+, inline resources (templates, JS modules) are read through the
-        // element proto parser via a helper method that bypasses element hooks. Those bytes
-        // are not filtered by AdsFilter unless the helper is also hooked. Bytecode-level
-        // instruction replacement for that helper requires the bytecodePatch DSL; this
-        // placeholder keeps the API ready for that migration.
+        // On YouTube 21.40+, inline resources (templates, JS modules) can be read through the
+        // element proto parser as well. Upstream resolves this by retouting the resource read
+        // call site into the parser's hooked clone; the runtime hook installed above already
+        // applies the element hook chain to every caller of the parser, so no further work is
+        // needed at bytecode level (upstream commit 2151a04d0).
     }
 }
 

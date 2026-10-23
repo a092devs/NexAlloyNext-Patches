@@ -1,9 +1,9 @@
-package app.twoeno.extension.spotify;
+package io.github.nexalloy.nexfusion.extension.spotify;
 
 import java.lang.reflect.Field;
 
-import app.twoeno.extension.shared.Logger;
-import app.twoeno.extension.shared.Reflection;
+import io.github.nexalloy.nexfusion.extension.shared.Logger;
+import io.github.nexalloy.nexfusion.extension.shared.Reflection;
 
 /**
  * Blocks "Pendragon" popup ads (fullscreen promotions shown when opening the app).

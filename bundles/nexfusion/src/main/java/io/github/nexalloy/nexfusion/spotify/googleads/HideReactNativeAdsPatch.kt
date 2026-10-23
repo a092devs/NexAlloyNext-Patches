@@ -1,7 +1,7 @@
 package io.github.nexalloy.nexfusion.spotify.googleads
 
 import io.github.nexalloy.PatcherLog
-import app.twoeno.extension.googleads.ReactNativeAdsPatch
+import io.github.nexalloy.nexfusion.extension.googleads.ReactNativeAdsPatch
 import de.robv.android.xposed.XC_MethodHook.MethodHookParam
 import de.robv.android.xposed.XC_MethodReplacement
 import de.robv.android.xposed.XposedHelpers

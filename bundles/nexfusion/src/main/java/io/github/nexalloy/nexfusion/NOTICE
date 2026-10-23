@@ -161,10 +161,9 @@ have no runtime equivalent and are not ported.
 2eno/2eno-patches
 https://github.com/2eno/2eno-patches
 License: GPL-3.0
-Vendored material: extensions/twoeno/src/main/java/app/twoeno/extension/ — copied as upstream
+Vendored material: bundles/nexfusion/src/main/java/io/github/nexalloy/nexfusion/extension/ — copied as upstream
 wrote it, package names and comments included. The spotify extensions back the Spotify ad, layout,
-theme and sharing patches this bundle registers; the googleads, interpals, kleinanzeigen, shared
-and untappd extensions are vendored alongside them for the shared runtime code. The Spotify patches
+theme and sharing patches this bundle registers; the googleads and shared extensions are vendored alongside them for the shared runtime code. The Spotify patches
 moved here from this repository's `2eno` bundle in the 2.11.0 release.
 Ported material: patches/src/main/kotlin/app/twoeno/patches/spotify/ — the Spotify fingerprints and
 hook logic, re-implemented in bundles/nexfusion/src/main/java/io/github/nexalloy/nexfusion/spotify/

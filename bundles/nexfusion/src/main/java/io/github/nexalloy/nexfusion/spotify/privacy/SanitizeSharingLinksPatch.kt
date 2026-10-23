@@ -1,7 +1,7 @@
 package io.github.nexalloy.nexfusion.spotify.privacy
 
 import android.content.ClipData
-import app.twoeno.extension.spotify.SanitizeSharingLinksPatch
+import io.github.nexalloy.nexfusion.extension.spotify.SanitizeSharingLinksPatch
 import io.github.nexalloy.patch
 import io.github.nexalloy.nexfusion.spotify.formatAndroidShareSheetUrlMethod
 import io.github.nexalloy.nexfusion.spotify.shareCopyUrlMethod

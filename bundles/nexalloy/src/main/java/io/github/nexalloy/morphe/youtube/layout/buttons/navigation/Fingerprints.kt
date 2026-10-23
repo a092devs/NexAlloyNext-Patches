@@ -2,6 +2,7 @@ package io.github.nexalloy.morphe.youtube.layout.buttons.navigation
 
 import io.github.nexalloy.morphe.AccessFlags
 import io.github.nexalloy.morphe.Fingerprint
+import io.github.nexalloy.morphe.InstructionLocation.MatchAfterImmediately
 import io.github.nexalloy.morphe.InstructionLocation.MatchAfterWithin
 import io.github.nexalloy.morphe.Opcode
 import io.github.nexalloy.morphe.OpcodesFilter
@@ -9,6 +10,8 @@ import io.github.nexalloy.morphe.findMethodDirect
 import io.github.nexalloy.morphe.fingerprint
 import io.github.nexalloy.morphe.literal
 import io.github.nexalloy.morphe.methodCall
+import io.github.nexalloy.morphe.opcode
+import io.github.nexalloy.morphe.string
 import io.github.nexalloy.morphe.strings
 
 
@@ -61,5 +64,26 @@ internal object AutoHideNavigationBarOnDismissMiniplayerFingerprint : Fingerprin
             smali = "Ljava/util/Iterator;->next()Ljava/lang/Object;",
             location = MatchAfterWithin(5)
         )
+    )
+)
+
+/**
+ * Draws the blurred background of the translucent navigation bar. If the canvas is hardware
+ * accelerated, a copy of the watch layout, with the player, is drawn into a blurred render node,
+ * then the bar color is drawn over it.
+ */
+internal object NavigationBarBlurDrawFingerprint : Fingerprint(
+    classFingerprint = Fingerprint(
+        filters = listOf(
+            string("frostedGlassRenderNode"),
+        )
+    ),
+    name = "draw",
+    returnType = "V",
+    parameters = listOf("Landroid/graphics/Canvas;"),
+    filters = listOf(
+        methodCall(smali = "Landroid/graphics/Canvas;->isHardwareAccelerated()Z"),
+        opcode(Opcode.MOVE_RESULT, location = MatchAfterImmediately()),
+        methodCall(smali = "Landroid/view/View;->draw(Landroid/graphics/Canvas;)V")
     )
 )

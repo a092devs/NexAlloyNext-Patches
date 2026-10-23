@@ -12,6 +12,7 @@ import io.github.nexalloy.morphe.checkCast
 import io.github.nexalloy.morphe.fieldAccess
 import io.github.nexalloy.morphe.findFieldDirect
 import io.github.nexalloy.morphe.findMethodDirect
+import io.github.nexalloy.morphe.findMethodListDirect
 import io.github.nexalloy.morphe.methodCall
 import io.github.nexalloy.morphe.opcode
 import io.github.nexalloy.morphe.resourceLiteral
@@ -44,6 +45,25 @@ internal val showWatermarkSubFingerprint = findMethodDirect {
             paramTypes("android.view.View", "boolean")
         }
     }.single()
+}
+
+/**
+ * The methods that find the live chat scroll to bottom button (upstream commit 19569880c,
+ * "Hide live chat scroll to bottom button").
+ */
+internal object MoreCommentsIconFingerprint : Fingerprint(
+    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
+    returnType = "Landroid/view/View;",
+    parameters = listOf(),
+    filters = listOf(
+        resourceLiteral(ResourceType.ID, "more_comments_icon"),
+        methodCall(opcode = Opcode.INVOKE_VIRTUAL, name = "findViewById"),
+        opcode(Opcode.MOVE_RESULT_OBJECT, location = MatchAfterImmediately()),
+    )
+)
+
+internal val moreCommentsIconMethods = findMethodListDirect {
+    MoreCommentsIconFingerprint.matchAllOrNull()?.mapNotNull { it.method } ?: emptyList()
 }
 
 /*

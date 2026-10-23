@@ -1,4 +1,4 @@
-package app.twoeno.extension.spotify;
+package io.github.nexalloy.nexfusion.extension.spotify;
 
 import android.annotation.SuppressLint;
 import android.app.Application;
@@ -15,7 +15,7 @@ import android.os.Looper;
 
 import java.util.Locale;
 
-import app.twoeno.extension.shared.Logger;
+import io.github.nexalloy.nexfusion.extension.shared.Logger;
 
 /**
  * Mutes the music stream while Spotify plays an audio ad and restores it afterwards.

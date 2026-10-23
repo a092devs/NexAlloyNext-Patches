@@ -98,6 +98,24 @@ val NavigationBar = patch(
     insertLiteralOverride(45632194L, NavigationBarPatch::useTranslucentNavigationBar)
     insertLiteralOverride(45631257L, NavigationBarPatch::useTranslucentNavigationBar)
 
+    // Frosted-glass blur draw crash on Android 12/13 (port of upstream a6db8d7ab): the blurred
+    // background copies the watch layout onto the bar, so the player surface is drawn twice per
+    // frame and both positions are pushed to the surface from two threads at once while the
+    // player is dragged down to the miniplayer. Upstream forces the bar canvas to look not
+    // hardware accelerated on those versions, so the copy draw is skipped while the bar color
+    // is still painted. Scoped to the blur draw method, only installed on affected versions.
+    if (Build.VERSION.SDK_INT < 34) {
+        NavigationBarBlurDrawFingerprint.dexMethod.hookMethod(
+            scopedHook(
+                DexMethod("Landroid/view/View;->draw(Landroid/graphics/Canvas;)V").toMethod()
+            ) {
+                before {
+                    it.result = null
+                }
+            }
+        )
+    }
+
     // TODO Narrow navigation buttons
 
     // Fix navigation bar growing and covering the page when the keyboard is open
