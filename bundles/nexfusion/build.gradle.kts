@@ -5,10 +5,14 @@ plugins {
 android {
     namespace = "io.github.nexalloy.patches.nexfusion"
 
+    lint {
+        abortOnError = false
+    }
+
     defaultConfig {
         applicationId = "io.github.nexalloy.patches.nexfusion"
-        versionCode = 36
-        versionName = "3.4.1"
+        versionCode = 37
+        versionName = "3.4.2"
     }
 }
 

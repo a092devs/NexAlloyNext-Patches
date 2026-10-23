@@ -7,7 +7,9 @@ import io.github.nexalloy.patches.ExtensionResourceHook
 import io.github.nexalloy.addModuleAssets
 import io.github.nexalloy.atLast
 import io.github.nexalloy.injectHostClassLoaderToSelf
-import io.github.nexalloy.injectSelfClassLoaderToHost
+import io.github.nexalloy.hookExtensionClassLoading
+import io.github.nexalloy.morphe.shared.misc.debugging.experimentalIndexedBooleanFeatureFlagFingerprint
+import io.github.nexalloy.morphe.youtube.misc.playservice.is_21_42_or_greater
 import io.github.nexalloy.morphe.shared.misc.CheckRecycleBitmapMediaSession
 import io.github.nexalloy.morphe.shared.misc.debugging.experimentalBooleanFeatureFlagFingerprint
 import io.github.nexalloy.morphe.youtube.ad.HideAds
@@ -50,7 +52,7 @@ import org.luckypray.dexkit.wrap.DexMethod
 val ExtensionHook = patch(name = "<ExtensionHook>") {
     dependsOn(VersionCheck)
     injectHostClassLoaderToSelf(bundle.classLoader, classLoader)
-    injectSelfClassLoaderToHost(bundle.classLoader, classLoader)
+    hookExtensionClassLoading(bundle.classLoader)
     val hooked = runCatching {
         DexMethod("$YOUTUBE_MAIN_ACTIVITY_CLASS_TYPE->onCreate(Landroid/os/Bundle;)V").hookMethod {
             before {
@@ -101,6 +103,21 @@ val FeatureOverride = patch {
                 val orig = (it.result as? Boolean) ?: return@after
                 val match = overrides[id] ?: return@after
                 it.result = match(orig)
+            }
+        }
+    }
+    if (is_21_42_or_greater) {
+        runCatching {
+            ::experimentalIndexedBooleanFeatureFlagFingerprint.hookMethod {
+                priority = XposedInterface.PRIORITY_DEFAULT - 1
+                after {
+                    val args = it.args ?: return@after
+                    if (args.size < 2) return@after
+                    val id = (args[args.size - 2] as? Long) ?: return@after
+                    val orig = (it.result as? Boolean) ?: return@after
+                    val match = overrides[id] ?: return@after
+                    it.result = match(orig)
+                }
             }
         }
     }

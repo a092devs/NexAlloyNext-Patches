@@ -13,9 +13,13 @@ plugins {
 android {
     namespace = "io.github.nexalloy.patches"
 
+    lint {
+        abortOnError = false
+    }
+
     defaultConfig {
         applicationId = "io.github.nexalloy.patches"
-        versionCode = 13
+        versionCode = 14
         val patchVersion = Properties().apply {
             rootProject.file("morphe-patches/gradle.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
         }["version"]

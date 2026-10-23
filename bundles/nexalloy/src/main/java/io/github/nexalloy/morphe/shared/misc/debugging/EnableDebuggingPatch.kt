@@ -63,6 +63,17 @@ fun enableDebuggingPatch(
         }
     }
 
+    runCatching {
+        ::experimentalIndexedBooleanFeatureFlagFingerprint.memberOrNull?.hookMethod {
+            after {
+                it.result = EnableDebuggingPatch.isBooleanFeatureFlagEnabled(
+                    it.result as Boolean,
+                    it.args.atLast(2) as Long
+                )
+            }
+        }
+    }
+
     if (hookDoubleFeatureFlag()) {
         ::experimentalDoubleFeatureFlagFingerprint.memberOrNull?.hookMethod {
             after {

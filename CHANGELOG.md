@@ -7,6 +7,18 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.4.2
+
+- `NexAlloy` 1.0.14:
+  * YouTube Layout & Navigation: Restored classic 5 bottom tabs layout (Home, Shorts, Subscriptions, Create/Notifications, You) by defaulting `morphe_swap_create_with_notifications_button` to `false`, preventing unintended Android Automotive Guide client spoofing.
+  * YouTube Premium Promos: Defaulted `morphe_hide_get_premium_button` and `morphe_hide_youtube_premium_menu` to `true`, cleanly hiding "Get Premium" promotions from the You tab page header (`SPunlimited`) and navigation menus.
+  * YouTube Watch History: Restored Watch History shelf on the "You" tab by setting `morphe_hide_horizontal_shelves` default to `false` and preserving `FEhistory` shelf visibility.
+  * YouTube 21.42+ Feature Flag Override: Added `experimentalIndexedBooleanFeatureFlagFingerprint` (`(I, J, Z) -> Z`) support to `FeatureOverride` and `EnableDebuggingPatch`, ensuring all runtime boolean feature flag overrides take effect on YouTube 21.42+.
+  * Extension Class Loading: Switched to framework inflation entry-point hooks (`LayoutInflater.createView`, `DrawableInflater.inflateFromClass`, and `Fragment.instantiate`) for module UI classes, preserving the host ART ClassLoader hierarchy without parent delegation interference.
+- `NexFusion` 3.4.2:
+  * Instagram: Added target `452.1.0.53.64` to `Instagram` targets in `NexFusionPatches.kt`, resolving status from "Untested" to "Compatible".
+  * LinkedIn: Added target `4.1.1264` to `LinkedIn` targets in `NexFusionPatches.kt`, resolving status from "Untested" to "Compatible".
+
 ## 3.4.1
 
 - `NexAlloy` 1.0.13:

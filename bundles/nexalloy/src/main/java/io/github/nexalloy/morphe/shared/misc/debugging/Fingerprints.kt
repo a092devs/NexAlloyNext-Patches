@@ -50,12 +50,24 @@ internal val experimentalBooleanFeatureFlagFingerprint = findMethodDirect {
             ) || parametersMatch( // 21.35+
                 params,
                 listOf("J", "Z")
-            ) || parametersMatch( // 21.42+
-                params,
-                listOf("I", "J", "Z")
             )
         }
     }
+}
+
+/**
+ * 21.42+ boolean accessor with an additional int parameter.
+ * The [experimentalBooleanFeatureFlagFingerprint] accessor still exists and is also used.
+ */
+internal val experimentalIndexedBooleanFeatureFlagFingerprint = findMethodDirect {
+    findMethod {
+        matcher {
+            declaredClass(experimentFlagUtilFingerprint().name)
+            accessFlags(AccessFlags.PUBLIC)
+            returns("Z")
+            parameters("I", "J", "Z")
+        }
+    }.single()
 }
 
 @SuppressLint("NonUniqueDexKitData")

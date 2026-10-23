@@ -48,6 +48,7 @@ object NexFusionPatches : PatchBundle {
             packageName = "com.instagram.android",
             patches = InstagramPatches,
             targets = listOf(
+                AppTarget("452.1.0.53.64"),
                 AppTarget("452.0.0.48.64"),
                 AppTarget("451.0.0.53.80"),
                 AppTarget("450.0.0.46.79"),
@@ -83,6 +84,7 @@ object NexFusionPatches : PatchBundle {
             packageName = "com.linkedin.android",
             patches = LinkedInPatches,
             targets = listOf(
+                AppTarget("4.1.1264"),
                 AppTarget("4.1.1263"),
                 AppTarget("4.1.1261"),
                 AppTarget("4.1.1259"),
