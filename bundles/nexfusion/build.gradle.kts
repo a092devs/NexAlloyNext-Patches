@@ -7,8 +7,8 @@ android {
 
     defaultConfig {
         applicationId = "io.github.nexalloy.patches.nexfusion"
-        versionCode = 34
-        versionName = "3.3.10"
+        versionCode = 35
+        versionName = "3.4.0"
     }
 }
 
@@ -17,8 +17,8 @@ nexalloyBundle {
     author = "a092devs"
     descriptionResource = "bundle_description"
     resourcePackageId = 0x4e
-    compatibilitySeries = "3.3"
-    minManagerVersion = "3.3.0"
+    compatibilitySeries = "3.4"
+    minManagerVersion = "3.4.0"
 }
 
 dependencies {

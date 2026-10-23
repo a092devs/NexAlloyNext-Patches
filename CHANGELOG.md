@@ -7,8 +7,15 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
-## Unreleased
+## 3.4.0
 
+- `NexFusion` 3.4.0:
+  * Settings UI: Fixed `sortPreferenceGroups` NullPointerException when encountering null-key preference groups or null items, adding full null-safety with collation fallback and automated regression tests.
+  * Patch Set Curation: Completely removed discontinued patches (`Kleinanzeigen`, `Untappd`, and `InterPals`) along with their exclusive resources, tests, and build definitions.
+  * NexFusion Modernization: Relocated remaining `2eno` extension packages (googleads, shared, spotify) to `io.github.nexalloy.nexfusion.extension`, unified runtime logger tag to NexFusion, and preserved upstream attribution.
+  * Reddit: Added `RedgifsAudioPatch` for unmuting embedded Redgifs audio streams on Reddit 2026.42.0+.
+  * Upstream Feature Ports: Integrated Picture-in-Picture captions toggle, Skip Live Shorts filter, Ambient Mode override controls, and Video Delay adjustments.
+  * Build & CI: Submodule pointers and public fork references updated to ensure fully reproducible, verified CI builds.
 - Build: Removed the duplicated local `build-logic` copy and pinned the
   `nexalloy.bundle` plugin to the version published by NexAlloyNext.
 - CI: Kept validation in the Android workflow and restored a dedicated release
