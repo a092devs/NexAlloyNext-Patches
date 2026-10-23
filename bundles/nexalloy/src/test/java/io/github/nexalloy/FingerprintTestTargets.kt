@@ -1,6 +1,0 @@
-package io.github.nexalloy
-
-val fingerprintTestTargets = mapOf(
-    "com.google.android.youtube" to FingerprintTestTarget("youtube", "morphe/youtube", "morphe/shared"),
-    "com.google.android.apps.youtube.music" to FingerprintTestTarget("music", "morphe/music", "morphe/shared"),
-)

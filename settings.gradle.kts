@@ -36,5 +36,4 @@ android {
 rootProject.name = "NexAlloyNext-Patches"
 
 include(":stub")
-include(":bundles:nexalloy")
 include(":bundles:nexfusion")

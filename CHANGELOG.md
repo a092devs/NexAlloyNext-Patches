@@ -7,6 +7,15 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.5.0
+
+- `NexFusion` 3.5.0:
+  * Unified Patch Bundle: Merged YouTube, YouTube Music, and Google Photos directly into NexFusion, retiring the separate `bundles/nexalloy` bundle to consolidate all 15 supported applications into a single, unified patch bundle (`nexfusion-3.5.0.nxb`).
+  * Classic YouTube Navigation: Fully restored the classic 5 bottom tabs layout (`Home`, `Shorts`, `+`, `Subscriptions`, `You`) and phone header chips ("All", "Podcasts", "Gaming", etc.) by purging Automotive Guide spoofing from `NavigationBarPatch`.
+  * YouTube SponsorBlock: Restored `PlayerTypeFingerprint` and `ReelWatchPagerFingerprint` in `PlayerTypeHookPatch`, ensuring player types are tracked in real-time, `playerState().isPlayerTypeNoneOrHidden()` evaluates accurately, and automated segment skipping operates seamlessly.
+  * YouTube Settings & About Screen: Updated branding to "NexAlloyNext", updated repository link to `https://github.com/a092devs/NexAlloyNext`, developer attribution to `@a092devs`, and Telegram to `https://t.me/a092devs`. Removed Discord, Donate, and Morphe API fetch buttons.
+  * Verified App Targets: YouTube `21.42.243`, `21.41.525`, `21.40.161`, `21.39.522`; YouTube Music `9.33.00`; Instagram `452.1.0.53.64`; LinkedIn `4.1.1264`; Facebook `583.0.0.39.55`; Discord `350.8`; Proton VPN `5.20.98.0`; X `12.36.1-prod.01`; Reddit `2026.42.0`. All unit and compatibility tests pass.
+
 ## 3.4.3
 
 - `NexAlloy` 1.0.15:

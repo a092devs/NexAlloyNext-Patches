@@ -47,35 +47,26 @@ resource package id collides with an already installed one. See
 
 ## Curated Patch Bundles
 
-### 1. NexAlloy Patches (`nexalloy-*.nxb`)
-Core streaming, media, and productivity runtime patches.
+### NexFusion Patches (`nexfusion-*.nxb`)
+Unified runtime bytecode patches across all 15 supported applications, combining core streaming, media, productivity, privacy, and sharing customizations into a single distribution.
 
 | Target Application | Package Identifier | Key Patch Capabilities |
 |---|---|---|
 | **YouTube** | `com.google.android.youtube` | Remove video/feed ads, SponsorBlock, background playback, link sanitization, custom playback speeds & quality dialog, swipe controls, layout filtering, DeArrow, Litho node bypass, Shorts resuming, Ambient mode, Miniplayer, PiP seek buttons, Disable playlist autoplay |
 | **YouTube Music** | `com.google.android.apps.youtube.music` | Background playback, audio ad removal, exclusive audio playback, hide upgrade buttons |
 | **Google Photos** | `com.google.android.apps.photos` | Spoof Pixel XL features (enables unlimited original-quality cloud storage), DCIM folder backup control |
-
-### 2. NexFusion Patches (`nexfusion.nxb`)
-Community-ported privacy, sharing, and customization patches unified under the `NexFusion`
-identity, with per-patch attribution in
-[bundles/nexfusion/.../NOTICE](bundles/nexfusion/src/main/java/io/github/nexalloy/nexfusion/NOTICE).
-
-
-| Target Application | Package Identifier | Key Patch Capabilities |
-|---|---|---|
 | **Discord** | `com.discord` | Disable crash reporting, telemetry and touch logging, install attribution, advertising identifiers (native entry points from Venus-Patches) |
-| **Facebook** | `com.facebook.katana` | Media downloader for photos (viewer 'Save to phone' unlock), videos, Reels (native 'Download reel' and 'Download audio' options with authentic Facebook vector icons) and Stories (capability unlock + direct save) with progressive and DASH track extraction, AAC/M4A audio extraction, customizable download directories; hide sponsored posts, hide sponsored reels, hide feed reels, hide sponsored stories, block telemetry & ad tracking, allow screenshots, block screenshot detection, open links in external browser (Hushfacebook ports) |
-| **Gboard** | `com.google.android.inputmethod.latin` | Dynamic Phenotype flag detection + SharedPreferences hook for rounded keycaps, AI writing tools, scan text OCR, screenshot chips, emoji palette v2, smart compose, spellchecker suggestion chips, cursor trackpad, and more (PixelBoard & jasonwu1994 ports) |
+| **Facebook** | `com.facebook.katana` | Media downloader for photos, videos, Reels, and Stories with DASH and audio extraction; hide sponsored posts, reels, and stories; allow screenshots (Hushfacebook ports) |
+| **Gboard** | `com.google.android.inputmethod.latin` | Dynamic Phenotype flag detection + SharedPreferences hook for rounded keycaps, AI writing tools, scan text OCR, screenshot chips, emoji palette v2, smart compose, spellchecker suggestion chips, cursor trackpad |
 | **Gmail** | `com.google.android.gm` | Hide sponsored promotional ads in the inbox (NexAlloy-XES port) |
 | **Google App** | `com.google.android.googlequicksearchbox` | Filter sponsored cards and ads in the Discover feed (NexAlloy-XES port) |
-| **Instagram** | `com.instagram.android` | Download menu options (post, reels, story, highlight, profile picture) with save location, per-username folder and timestamp name settings; sponsored-post, reels and story ad blocking (request rules and Piko's ad injector); request rules for suggested posts, story-seen and live-viewer analytics, anonymous story/live viewing, screenshot support, link sanitizer (HushGram & Piko ports) |
-| **LinkedIn** | `com.linkedin.android` | Sanitize share links (copy/share paths), open `safety/go` links directly, block tracking (off by default) |
+| **Instagram** | `com.instagram.android` | Download menu options (post, reels, story, highlight, profile picture) with save location, per-username folder and timestamp name settings; sponsored-post, reels and story ad blocking; anonymous story/live viewing; link sanitizer (HushGram & Piko ports) |
+| **LinkedIn** | `com.linkedin.android` | Sanitize share links (copy/share paths), open `safety/go` links directly, block tracking |
 | **MiXplorer** | `com.mixplorer` | Fix scoped-storage file sharing: hide unreadable `_data` paths from other apps on Android 11+ |
 | **Proton VPN** | `ch.protonvpn.android` | Disable telemetry and observability workers, suppress upgrade prompts, unlock NetShield UI availability (Paresh-Patches port) |
-| **Reddit** | `com.reddit.frontpage` | Feed and comment ad removal, start as guest, sanitize sharing links, screenshot banner, custom feed sorting, navigation controls (consolidated single source for Reddit) |
+| **Reddit** | `com.reddit.frontpage` | Feed and comment ad removal, start as guest, sanitize sharing links, screenshot banner, custom feed sorting, Redgifs audio unmuting |
 | **Spotify** | `com.spotify.music` | Audio ad muting, hide ad views/video banners, hide Premium navigation tab, Dynamic Material You theme, custom rounded corners, tracking link cleaner |
-| **X** | `com.twitter.android` | Promoted-post removal (presenter funnel, Quick Promote, Google ads initializer), video/GIF download unlock, outdated-screen and in-app update block, telemetry/tracker blackholing, premium upsell removal, four optional controls (kveld9 ports) |
+| **X** | `com.twitter.android` | Promoted-post removal, video/GIF download unlock, outdated-screen and in-app update block, telemetry/tracker blackholing, premium upsell removal |
 
 
 ---

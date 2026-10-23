@@ -1,0 +1,7 @@
+<resources>
+    <string name="application_name">YouTube</string>
+    <string name="morphe_settings">Morphe</string>
+    <string name="app_launcher_name">PLACEHOLDER</string>
+    <string name="morphe_pip_seek_buttons_title">Picture-in-picture seek buttons</string>
+    <string name="morphe_pip_seek_buttons_summary">Adds rewind and forward (±5 seconds) buttons to the Picture-in-picture window</string>
+</resources>

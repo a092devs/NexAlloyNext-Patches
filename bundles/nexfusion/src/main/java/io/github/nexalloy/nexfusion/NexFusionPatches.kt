@@ -2,7 +2,13 @@ package io.github.nexalloy.nexfusion
 
 import io.github.nexalloy.AppPatchInfo
 import io.github.nexalloy.AppTarget
+import io.github.nexalloy.Patch
 import io.github.nexalloy.PatchBundle
+import io.github.nexalloy.morphe.music.YTMusicPatches
+import io.github.nexalloy.morphe.youtube.YouTubePatches
+import io.github.nexalloy.patches.ExtensionContextHook
+import io.github.nexalloy.patches.MorpheTargets
+import io.github.nexalloy.revanced.googlephotos.GooglePhotosPatches
 import io.github.nexalloy.nexfusion.discord.DiscordPatches
 import io.github.nexalloy.nexfusion.facebook.FacebookPatches
 import io.github.nexalloy.nexfusion.gboard.GboardPatches
@@ -18,7 +24,18 @@ import io.github.nexalloy.nexfusion.twitter.TwitterPatches
 
 /** Entry point of the NexFusion Patches bundle, named in its manifest. */
 object NexFusionPatches : PatchBundle {
+    private fun morpheApp(
+        appName: String,
+        packageName: String,
+        patches: Array<Patch>,
+        targets: List<AppTarget> = emptyList(),
+        appIconColor: Int? = null,
+    ) = AppPatchInfo(appName, packageName, arrayOf(ExtensionContextHook, *patches), targets, appIconColor)
+
     override val apps = listOf(
+        morpheApp("YouTube", "com.google.android.youtube", YouTubePatches, MorpheTargets.YOUTUBE, 0xFF0033),
+        morpheApp("YT Music", "com.google.android.apps.youtube.music", YTMusicPatches, MorpheTargets.MUSIC, 0xFF0000),
+        morpheApp("Google Photos", "com.google.android.apps.photos", GooglePhotosPatches, appIconColor = 0x4285F4),
         AppPatchInfo(
             appName = "Discord",
             packageName = "com.discord",
@@ -144,4 +161,3 @@ object NexFusionPatches : PatchBundle {
         ),
     )
 }
-
