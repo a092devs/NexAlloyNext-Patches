@@ -7,10 +7,10 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
-## 3.5.0
+## 3.4.4
 
-- `NexFusion` 3.5.0:
-  * Unified Patch Bundle: Merged YouTube, YouTube Music, and Google Photos directly into NexFusion, retiring the separate `bundles/nexalloy` bundle to consolidate all 15 supported applications into a single, unified patch bundle (`nexfusion-3.5.0.nxb`).
+- `NexFusion` 3.4.4:
+  * Unified Patch Bundle: Merged YouTube, YouTube Music, and Google Photos directly into NexFusion, retiring the separate `bundles/nexalloy` bundle to consolidate all 15 supported applications into a single, unified patch bundle (`nexfusion-3.4.4.nxb`).
   * Classic YouTube Navigation: Fully restored the classic 5 bottom tabs layout (`Home`, `Shorts`, `+`, `Subscriptions`, `You`) and phone header chips ("All", "Podcasts", "Gaming", etc.) by purging Automotive Guide spoofing from `NavigationBarPatch`.
   * YouTube SponsorBlock: Restored `PlayerTypeFingerprint` and `ReelWatchPagerFingerprint` in `PlayerTypeHookPatch`, ensuring player types are tracked in real-time, `playerState().isPlayerTypeNoneOrHidden()` evaluates accurately, and automated segment skipping operates seamlessly.
   * YouTube Settings & About Screen: Updated branding to "NexAlloyNext", updated repository link to `https://github.com/a092devs/NexAlloyNext`, developer attribution to `@a092devs`, and Telegram to `https://t.me/a092devs`. Removed Discord, Donate, and Morphe API fetch buttons.
