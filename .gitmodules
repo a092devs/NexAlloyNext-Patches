@@ -1,6 +1,6 @@
 [submodule "morphe-patches"]
 	path = morphe-patches
-	url = https://github.com/NexAlloy/morphe-patches
+	url = https://github.com/a092devs/morphe-patches
 	branch = nexalloy
 [submodule "morphe-patches-library"]
 	path = morphe-patches-library
