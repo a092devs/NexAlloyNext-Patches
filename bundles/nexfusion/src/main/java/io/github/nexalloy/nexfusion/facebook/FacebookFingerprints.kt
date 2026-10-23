@@ -443,10 +443,12 @@ val storySaveCapabilityMethod = findMethodDirect {
 val storySaveAction = findMethodDirect {
     val matches = findMethod {
         matcher {
-            usingStrings(listOf("PublishingTaskStatusUnknown", "media_type"), StringMatchType.Contains)
+            usingStrings(listOf("PublishingTaskStatusUnknown"), StringMatchType.Contains)
         }
     }.filter { method ->
-        method.returnTypeName == "void" && method.paramTypeNames.firstOrNull() == "com.facebook.stories.model.StoryCard"
+        method.returnTypeName == "void" &&
+            method.paramTypeNames.size in 1..2 &&
+            method.paramTypeNames.contains("com.facebook.stories.model.StoryCard")
     }.distinctBy { it.descriptor }
     check(matches.size == 1) { "expected 1 storySaveAction, found ${matches.size}" }
     matches.single()

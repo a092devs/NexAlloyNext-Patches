@@ -23,6 +23,12 @@ internal const val CLIENT_INFO_CLASS =
 internal const val YOUTUBE_MAIN_ACTIVITY_CLASS_TYPE =
     "Lcom/google/android/apps/youtube/app/watchwhile/MainActivity;"
 
+internal object VideoStreamingDataToStringFingerprint : Fingerprint(
+    name = "toString",
+    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
+    returnType = "Ljava/lang/String;",
+    filters = listOf(string("VideoStreamingData(itags="))
+)
 
 internal object BuildClientContextBodyConstructorFingerprint : Fingerprint(
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.CONSTRUCTOR),
@@ -85,6 +91,13 @@ val seekbarFingerprint = fingerprint {
     returns("V")
     strings("timed_markers_width")
 }
+
+internal object SeekbarFingerprint : Fingerprint(
+    returnType = "V",
+    filters = listOf(
+        string("timed_markers_width"),
+    )
+)
 
 internal object PlaybackSpeedOnItemClickParentFingerprint : Fingerprint(
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.STATIC),

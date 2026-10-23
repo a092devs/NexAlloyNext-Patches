@@ -87,3 +87,60 @@ internal object NavigationBarBlurDrawFingerprint : Fingerprint(
         methodCall(smali = "Landroid/view/View;->draw(Landroid/graphics/Canvas;)V")
     )
 )
+
+internal object BrowseResponseTabsFingerprint : Fingerprint(
+    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL, AccessFlags.DECLARED_SYNCHRONIZED),
+    returnType = "L",
+    parameters = listOf(),
+    filters = listOf(
+        literal(58173949L),
+        methodCall(name = "stream"),
+        opcode(Opcode.IPUT_OBJECT)
+    )
+)
+
+internal object PivotBarItemProtoFactoryFingerprint : Fingerprint(
+    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.STATIC),
+    returnType = "L",
+    parameters = listOf("Ljava/lang/String;", "Ljava/lang/String;", "L", "Z"),
+    filters = listOf(
+        literal(117501096L)
+    )
+)
+
+internal object PivotBarRendererFingerprint : Fingerprint(
+    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.STATIC),
+    parameters = listOf("L"),
+    returnType = "Lj$/util/Optional;",
+    filters = listOf(
+        literal(117501096L),
+        opcode(Opcode.IF_NE),
+        opcode(Opcode.CHECK_CAST),
+        methodCall(
+            opcode = Opcode.INVOKE_DIRECT_RANGE,
+            definingClass = "this",
+            name = "<init>",
+            returnType = "V"
+        ),
+        opcode(Opcode.RETURN_OBJECT)
+    )
+)
+
+internal object PivotBarRendererListFingerprint : Fingerprint(
+    parameters = listOf("L"),
+    returnType = "V",
+    filters = listOf(
+        opcode(Opcode.IGET_OBJECT),
+        methodCall(
+            opcode = Opcode.INVOKE_STATIC,
+            parameters = listOf("L"),
+            returnType = "L"
+        ),
+        opcode(Opcode.IPUT_OBJECT),
+        literal(45633821L),
+    )
+)
+
+internal val pivotBarRendererListMethod = findMethodDirect {
+    PivotBarRendererListFingerprint.instructionMatches[1].instruction.methodRef!!
+}

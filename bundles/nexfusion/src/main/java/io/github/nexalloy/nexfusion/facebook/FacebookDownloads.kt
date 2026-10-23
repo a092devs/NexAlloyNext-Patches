@@ -1448,7 +1448,8 @@ val DownloadFacebookMedia = patch(
         ::storySaveAction.dexMethod.hookMethod {
             before { param ->
                 runCatching {
-                    val storyCard = param.args.getOrNull(0) ?: return@before
+                    val storyCard = param.args.firstOrNull { it != null && it.javaClass.name.endsWith("StoryCard") }
+                        ?: param.args.getOrNull(0) ?: return@before
                     val id = runCatching {
                         storyCard.javaClass.getMethod("getId").invoke(storyCard) as? String
                     }.getOrNull()

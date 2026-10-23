@@ -44,7 +44,9 @@ import java.io.File
 
 class FacebookDiscordCompatibilityTest {
 
-    private val facebookApk = "compat-binaries/com.facebook.katana-583.0.0.39.55.apk"
+    private val facebookApk = File("binaries").listFiles { f ->
+        f.isFile && f.name.startsWith("com.facebook.katana-") && f.name.endsWith(".apk")
+    }?.firstOrNull()?.path ?: "compat-binaries/com.facebook.katana-583.0.0.39.55.apk"
     private val discordApk = "compat-binaries/com.discord-349.9.apk"
     private val discord350Apk = "compat-binaries/com.discord-350.8.apk"
 
