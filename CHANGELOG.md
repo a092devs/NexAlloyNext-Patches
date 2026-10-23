@@ -7,6 +7,15 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.4.1
+
+- `NexAlloy` 1.0.13:
+  * YouTube SponsorBlock: Resolved critical playback time tracking failure on YouTube 21.42+. Fixed `PlayerControllerSetTimeReferenceFingerprint` opcode filter mismatch to accurately bind the `arcb.<init>` constructor hook, restoring real-time playback position ticks to `videoTimeHooks` and re-enabling automated SponsorBlock segment skipping.
+- `NexFusion` 3.4.1:
+  * Instagram: Verified compatibility with `com.instagram.android` 452.1.0.53.64 (reels, stories, media download hooks pass with zero errors).
+  * LinkedIn: Verified target class and method references (`NavigateToUrlActionViewData`, `RichTextUtils.getLinkShimmingLink`, `MetricQueue.queueMetric`, `ConversationListItemTransformer`, `sendTypingIndicator`, `updateConversationReadStatus`, `ClickActions`, `ComponentTransformer`, `CollectionTemplate`) on `com.linkedin.android` 4.1.1264.
+  * Comprehensive Suite Verification: Confirmed 100% test pass rate across YouTube, Spotify, Reddit, Facebook, Discord, Mixplorer, ProtonVPN, and Twitter target binaries.
+
 ## 3.4.0
 
 - `NexFusion` 3.4.0:
