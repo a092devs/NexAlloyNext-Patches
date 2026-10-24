@@ -10,6 +10,7 @@
 
 package io.github.nexalloy.morphe.youtube.interaction.seekbar
 
+import io.github.nexalloy.RequireAppVersion
 import io.github.nexalloy.morphe.AccessFlags
 import io.github.nexalloy.morphe.Fingerprint
 import io.github.nexalloy.morphe.InstructionLocation.MatchAfterImmediately
@@ -17,6 +18,7 @@ import io.github.nexalloy.morphe.InstructionLocation.MatchAfterWithin
 import io.github.nexalloy.morphe.Opcode
 import io.github.nexalloy.morphe.OpcodesFilter
 import io.github.nexalloy.morphe.StrictQuery
+import io.github.nexalloy.morphe.checkCast
 import io.github.nexalloy.morphe.fieldAccess
 import io.github.nexalloy.morphe.findFieldDirect
 import io.github.nexalloy.morphe.findMethodDirect
@@ -54,6 +56,7 @@ internal object AllowSwipingUpGestureFingerprint : Fingerprint(
     custom = { protoShorty("VL") }
 )
 
+@RequireAppVersion(minVersion = "21.40.000")
 internal object DisableFastForwardGestureFingerprint : Fingerprint(
     definingClass = "Lcom/google/android/apps/youtube/app/watch/nextgenwatch/ui/NextGenWatchLayout;",
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
@@ -63,6 +66,32 @@ internal object DisableFastForwardGestureFingerprint : Fingerprint(
         Opcode.IF_EQZ,
         Opcode.INVOKE_VIRTUAL,
         Opcode.MOVE_RESULT,
+    ),
+    custom = {
+        opCodesMatcher!!.size(31..Int.MAX_VALUE)
+    }
+)
+
+@RequireAppVersion(maxVersion = "21.40.000")
+internal object DisableFastForwardGestureFingerprintLegacy : Fingerprint(
+    definingClass = "Lcom/google/android/apps/youtube/app/watch/nextgenwatch/ui/NextGenWatchLayout;",
+    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
+    returnType = "Z",
+    parameters = listOf(),
+    filters = listOf(
+        fieldAccess(definingClass = "this", opcode = Opcode.IGET_OBJECT),
+        fieldAccess(opcode = Opcode.IGET_OBJECT, location = MatchAfterImmediately()),
+        methodCall(
+            parameters = listOf(),
+            returnType = "Ljava/lang/Object;",
+            opcode = Opcode.INVOKE_VIRTUAL,
+            location = MatchAfterImmediately()
+        ),
+        opcode(Opcode.MOVE_RESULT_OBJECT, location = MatchAfterImmediately()),
+        checkCast("Ljava/lang/Boolean;", location = MatchAfterImmediately()),
+        opcode(Opcode.IF_EQZ, location = MatchAfterImmediately()),
+        methodCall("Ljava/lang/Boolean;->booleanValue()Z", location = MatchAfterImmediately()),
+        opcode(Opcode.MOVE_RESULT, location = MatchAfterImmediately()),
     ),
     custom = {
         opCodesMatcher!!.size(31..Int.MAX_VALUE)
@@ -156,8 +185,24 @@ val slideToSeekCheckMethod = findMethodDirect {
     SlideToSeekFingerprint.instructionMatches.first().instruction.methodRef!!
 }
 
+@get:RequireAppVersion(minVersion = "21.40.000")
 val fastForwardGestureCheckMethod = findMethodDirect {
     DisableFastForwardGestureFingerprint.instructionMatches[1].instruction.methodRef!!
+}
+
+@get:RequireAppVersion(maxVersion = "21.40.000")
+val fastForwardGestureCheckMethodLegacy = findMethodDirect {
+    DisableFastForwardGestureFingerprintLegacy.instructionMatches[2].instruction.methodRef!!
+}
+
+@get:RequireAppVersion(maxVersion = "21.40.000")
+val fastForwardGestureControllerFieldLegacy = findFieldDirect {
+    DisableFastForwardGestureFingerprintLegacy.instructionMatches[0].instruction.fieldRef!!
+}
+
+@get:RequireAppVersion(maxVersion = "21.40.000")
+val fastForwardGestureValueFieldLegacy = findFieldDirect {
+    DisableFastForwardGestureFingerprintLegacy.instructionMatches[1].instruction.fieldRef!!
 }
 
 val slideToSeekCheckCallers = findMethodListDirect {

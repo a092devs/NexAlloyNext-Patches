@@ -13,6 +13,8 @@ import io.github.nexalloy.patch
 import io.github.nexalloy.atLast
 
 fun enableDebuggingPatch(
+    block: PatchExecutor.() -> Unit = {},
+    hookIndexedBooleanFeatureFlag: PatchExecutor.() -> Boolean = { false },
     hookStringFeatureFlag: PatchExecutor.() -> Boolean,
     hookLongFeatureFlag: PatchExecutor.() -> Boolean,
     hookDoubleFeatureFlag: PatchExecutor.() -> Boolean,
@@ -22,6 +24,8 @@ fun enableDebuggingPatch(
     name = "Enable debugging",
     description = "Adds options for debugging and exporting Morphe logs to the clipboard.",
 ) {
+    block()
+
     val preferences = mutableSetOf<BasePreference>(
         SwitchPreference("morphe_debug"),
     )
@@ -63,7 +67,7 @@ fun enableDebuggingPatch(
         }
     }
 
-    runCatching {
+    if (hookIndexedBooleanFeatureFlag()) {
         ::experimentalIndexedBooleanFeatureFlagFingerprint.memberOrNull?.hookMethod {
             after {
                 it.result = EnableDebuggingPatch.isBooleanFeatureFlagEnabled(
@@ -113,4 +117,3 @@ fun enableDebuggingPatch(
     // There exists other experimental accessor methods for byte[]
     // and wrappers for obfuscated classes, but currently none of those are hooked.
 }
-

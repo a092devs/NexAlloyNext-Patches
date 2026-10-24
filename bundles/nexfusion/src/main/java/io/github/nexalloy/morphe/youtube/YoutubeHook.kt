@@ -94,6 +94,7 @@ fun insertLiteralOverride(id: Long, override: (Boolean) -> Boolean) {
 }
 
 val FeatureOverride = patch {
+    dependsOn(VersionCheck)
     runCatching {
         ::experimentalBooleanFeatureFlagFingerprint.hookMethod {
             priority = XposedInterface.PRIORITY_DEFAULT - 1

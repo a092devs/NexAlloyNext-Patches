@@ -7,6 +7,18 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.4.10
+
+- `NexFusion` 3.4.10:
+  * YouTube 21.42.243 Compatibility: Resolved startup crashes and restored stability across patches on YouTube 21.42.243.
+  * Swipe Controls: Attached gesture overlay host to MainActivity lifecycle, restoring brightness, volume, and playback speed gestures.
+  * Seekbar & Gestures: Restored tap-to-seek, slide-to-seek, and skip live Shorts on 21.42+.
+  * Navigation Bar: Streamlined bottom room, navigation padding, and keyboard inset hooks to prevent layout crashes.
+  * Ambient Mode: Disambiguated candidate matching, normalized class descriptors for reflection, and added resilient Protobuf Lite parser resolution with default instance fallback.
+  * Captions: Guarded captions in picture-in-picture hooks and preferences on 21.42+ where caption rendering transitioned to Litho components.
+  * Vertical Scroll: Restored scoped SwipeRefreshLayout vertical scroll checks.
+  * VersionCheck Lifecycle: Enforced VersionCheck dependency across feature overrides and debugging patches to eliminate lifecycle initialization errors.
+
 ## 3.4.9
 
 - `NexFusion` 3.4.9:

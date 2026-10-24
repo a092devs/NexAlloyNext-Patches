@@ -1,5 +1,7 @@
 package io.github.nexalloy.morphe.youtube.layout.hide.ambientmode
 
+import android.content.Context
+
 import android.view.View
 import app.morphe.extension.youtube.patches.AmbientModePatch as ExtensionAmbientModePatch
 import app.morphe.extension.youtube.settings.Settings
@@ -16,6 +18,7 @@ import io.github.nexalloy.patch
 import org.luckypray.dexkit.util.InstanceUtil
 import org.luckypray.dexkit.wrap.DexField
 import org.luckypray.dexkit.wrap.DexMethod
+import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
 /**
@@ -39,69 +42,130 @@ private const val DEFAULT_CINEMATIC_CONTAINER_RENDERER =
  */
 internal object CinematicContainerForceAnchors {
     @Volatile var rendererClassDescriptor: String? = null
-
     @Volatile var hasBitsFieldDescriptor: String? = null
-
     @Volatile var styleHasBitMask: Int = 0
-
     @Volatile var styleFieldDescriptor: String? = null
-
     @Volatile var configFieldDescriptor: String? = null
-
     @Volatile var enabledByDefaultFieldDescriptor: String? = null
-
     @Volatile var stateTypeDescriptor: String? = null
-
     @Volatile var waitingStateFieldDescriptor: String? = null
-
     @Volatile var loadedStateFieldDescriptor: String? = null
+
+    val isInitialized: Boolean
+        get() = rendererClassDescriptor != null
+
+    fun save(context: Context) {
+        if (!isInitialized) return
+        context.getSharedPreferences("nexalloy_anchors_ambient", Context.MODE_PRIVATE).edit()
+            .putString("rendererClassDescriptor", rendererClassDescriptor)
+            .putString("hasBitsFieldDescriptor", hasBitsFieldDescriptor)
+            .putInt("styleHasBitMask", styleHasBitMask)
+            .putString("styleFieldDescriptor", styleFieldDescriptor)
+            .putString("configFieldDescriptor", configFieldDescriptor)
+            .putString("enabledByDefaultFieldDescriptor", enabledByDefaultFieldDescriptor)
+            .putString("stateTypeDescriptor", stateTypeDescriptor)
+            .putString("waitingStateFieldDescriptor", waitingStateFieldDescriptor)
+            .putString("loadedStateFieldDescriptor", loadedStateFieldDescriptor)
+            .apply()
+    }
+
+    fun load(context: Context): Boolean {
+        val prefs = context.getSharedPreferences("nexalloy_anchors_ambient", Context.MODE_PRIVATE)
+        rendererClassDescriptor = prefs.getString("rendererClassDescriptor", null) ?: return false
+        hasBitsFieldDescriptor = prefs.getString("hasBitsFieldDescriptor", null) ?: return false
+        styleHasBitMask = prefs.getInt("styleHasBitMask", 0)
+        styleFieldDescriptor = prefs.getString("styleFieldDescriptor", null) ?: return false
+        configFieldDescriptor = prefs.getString("configFieldDescriptor", null) ?: return false
+        enabledByDefaultFieldDescriptor = prefs.getString("enabledByDefaultFieldDescriptor", null) ?: return false
+        stateTypeDescriptor = prefs.getString("stateTypeDescriptor", null) ?: return false
+        waitingStateFieldDescriptor = prefs.getString("waitingStateFieldDescriptor", null) ?: return false
+        loadedStateFieldDescriptor = prefs.getString("loadedStateFieldDescriptor", null) ?: return false
+        return true
+    }
 }
 
 private val resolveCinematicContainerForceAnchors: FindMethodFunc = findMethodDirect {
-    val rendererData = CinematicContainerRendererFingerprint.match().method
+    val rendererData = runCatching { CinematicContainerRendererFingerprint.match().method }.getOrThrow()
     val rendererType = rendererData.declaredClass!!.descriptor
     CinematicContainerForceAnchors.rendererClassDescriptor = rendererType
 
-    val styleMatches = cinematicContainerPresentationStyleFingerprint(rendererType).match().instructionMatches
+    val styleMatches = runCatching {
+        (cinematicContainerPresentationStyleFingerprint(rendererType).matchAllOrNull()?.firstOrNull { it.instructionMatchesOrNull != null }
+            ?: cinematicContainerPresentationStyleFingerprint(rendererType).match()).instructionMatches
+    }.getOrThrow()
     CinematicContainerForceAnchors.hasBitsFieldDescriptor = styleMatches[0].instruction.fieldRef!!.descriptor
     CinematicContainerForceAnchors.styleHasBitMask = styleMatches[1].instruction.literal!!.toInt()
     CinematicContainerForceAnchors.styleFieldDescriptor = styleMatches[3].instruction.fieldRef!!.descriptor
 
-    val configField = cinematicContainerConfigFingerprint(rendererType)
-        .match().instructionMatches.last().instruction.fieldRef!!
+    val configMatch = runCatching {
+        (cinematicContainerConfigFingerprint(rendererType).matchAllOrNull()?.firstOrNull { it.instructionMatchesOrNull != null }
+            ?: cinematicContainerConfigFingerprint(rendererType).match())
+    }.getOrThrow()
+    val configField = configMatch.instructionMatches.last().instruction.fieldRef!!
+    val configDescriptor = configField.type.descriptor
     CinematicContainerForceAnchors.configFieldDescriptor = configField.descriptor
 
-    val enabledByDefaultField = cinematicContainerEnabledByDefaultFingerprint(configField.typeName)
-        .match().instructionMatches[3].instruction.fieldRef!!
+    val enabledByDefaultField = runCatching {
+        (cinematicContainerEnabledByDefaultFingerprint(configDescriptor).matchAllOrNull()?.firstOrNull { it.instructionMatchesOrNull != null }
+            ?: cinematicContainerEnabledByDefaultFingerprint(configDescriptor).match()).instructionMatches[3].instruction.fieldRef!!
+    }.getOrThrow()
     CinematicContainerForceAnchors.enabledByDefaultFieldDescriptor = enabledByDefaultField.descriptor
 
-    val withStateToString = CinematicContainerRendererWithStateFingerprint.match().method
+    val withStateToString = runCatching {
+        CinematicContainerRendererWithStateFingerprint.match().method
+    }.getOrThrow()
     val stateType = withStateToString.findFieldFromToString("rendererLoadedState=").typeName
-    CinematicContainerForceAnchors.stateTypeDescriptor = stateType
+    val stateDescriptor = if (stateType.startsWith("L")) stateType else "L${stateType.replace('.', '/')};"
+    CinematicContainerForceAnchors.stateTypeDescriptor = stateDescriptor
 
-    val stateMatches = cinematicContainerRendererLoadedStateFingerprint(stateType).match().instructionMatches
+    val stateMatches = runCatching {
+        (cinematicContainerRendererLoadedStateFingerprint(stateDescriptor).matchAllOrNull()?.firstOrNull { it.instructionMatchesOrNull != null }
+            ?: cinematicContainerRendererLoadedStateFingerprint(stateDescriptor).match()).instructionMatches
+    }.getOrThrow()
     CinematicContainerForceAnchors.waitingStateFieldDescriptor = stateMatches[1].instruction.fieldRef!!.descriptor
     CinematicContainerForceAnchors.loadedStateFieldDescriptor = stateMatches[3].instruction.fieldRef!!.descriptor
 
     rendererData
 }
 
+private fun classBinaryName(descriptor: String) =
+    descriptor.removePrefix("L").removeSuffix(";").replace('/', '.')
+
 private fun PatchExecutor.installForceAmbientModeRenderer() {
     val anchors = CinematicContainerForceAnchors
 
-    val rendererClass = classLoader.loadClass(anchors.rendererClassDescriptor!!)
+    val rendererClass = classLoader.loadClass(classBinaryName(anchors.rendererClassDescriptor!!))
     val hasBitsField = InstanceUtil.getFieldInstance(classLoader, DexField(anchors.hasBitsFieldDescriptor!!))
     val styleField = InstanceUtil.getFieldInstance(classLoader, DexField(anchors.styleFieldDescriptor!!))
     val configField = InstanceUtil.getFieldInstance(classLoader, DexField(anchors.configFieldDescriptor!!))
     val enabledByDefaultField =
         InstanceUtil.getFieldInstance(classLoader, DexField(anchors.enabledByDefaultFieldDescriptor!!))
 
-    // The static self-typed field holds the default renderer instance.
-    val defaultRendererField = rendererClass.declaredFields.first {
+    val defaultRenderer = rendererClass.declaredFields.firstOrNull {
         Modifier.isStatic(it.modifiers) && it.type == rendererClass
-    }
+    }?.apply { isAccessible = true }?.get(null)
 
-    val stateClass = classLoader.loadClass(anchors.stateTypeDescriptor!!)
+    val parseFromSingleArg = runCatching {
+        rendererClass.declaredMethods.firstOrNull {
+            Modifier.isStatic(it.modifiers) && it.name == "parseFrom" &&
+                it.parameterTypes.size == 1 && it.parameterTypes[0] == ByteArray::class.java
+        }?.apply { isAccessible = true }
+    }.getOrNull()
+
+    val parseFromTwoArg = runCatching {
+        var cls: Class<*>? = rendererClass
+        var method: Method? = null
+        while (cls != null && cls != Any::class.java && method == null) {
+            method = cls.declaredMethods.firstOrNull {
+                Modifier.isStatic(it.modifiers) && it.name == "parseFrom" &&
+                    it.parameterTypes.size == 2 && it.parameterTypes[1] == ByteArray::class.java
+            }
+            cls = cls.superclass
+        }
+        method?.apply { isAccessible = true }
+    }.getOrNull()
+
+    val stateClass = classLoader.loadClass(classBinaryName(anchors.stateTypeDescriptor!!))
     val waitingState = InstanceUtil.getFieldInstance(classLoader, DexField(anchors.waitingStateFieldDescriptor!!))
         .get(null)!!
     val loadedState = InstanceUtil.getFieldInstance(classLoader, DexField(anchors.loadedStateFieldDescriptor!!))
@@ -110,7 +174,7 @@ private fun PatchExecutor.installForceAmbientModeRenderer() {
     // Runtime side note: the class of the wrapped renderer differs per host flavor, so both
     // methods are found from the argument's runtime class instead of being field constants.
     val rendererWithStateClass = classLoader.loadClass(
-        CinematicContainerRendererWithStateFingerprint.dexMethod.declaredClassName
+        classBinaryName(CinematicContainerRendererWithStateFingerprint.dexMethod.declaredClassName)
     )
     val constructor = rendererWithStateClass.declaredConstructors.first {
         it.parameterTypes.size == 2 && it.parameterTypes[0] == stateClass
@@ -119,7 +183,6 @@ private fun PatchExecutor.installForceAmbientModeRenderer() {
     val optionalPresentMethod = optionalClass.getMethod("isPresent")
     val optionalGetMethod = optionalClass.getMethod("get")
     val optionalOfMethod = optionalClass.getMethod("of", Object::class.java)
-    val parseFromMethod = rendererClass.getDeclaredMethod("parseFrom", ByteArray::class.java)
 
     constructor.hookMethod {
         before { param ->
@@ -138,7 +201,14 @@ private fun PatchExecutor.installForceAmbientModeRenderer() {
                         // No /next response yet: fall back on the default renderer.
                         val data =
                             android.util.Base64.decode(DEFAULT_CINEMATIC_CONTAINER_RENDERER, android.util.Base64.DEFAULT)
-                        parseFromMethod.invoke(null, data)
+                        runCatching {
+                            when {
+                                parseFromSingleArg != null -> parseFromSingleArg.invoke(null, data)
+                                parseFromTwoArg != null && defaultRenderer != null ->
+                                    parseFromTwoArg.invoke(null, defaultRenderer, data)
+                                else -> defaultRenderer
+                            }
+                        }.getOrNull() ?: defaultRenderer
                     }
 
                     // Force presentation style DYNAMIC_BLURRED, and mark the corresponding
@@ -207,10 +277,13 @@ val AmbientMode = patch(
     // (the background does not change with the video, issue #3783) or ambient mode off by
     // default. Override what the server decides.
     runCatching {
-        ::resolveCinematicContainerForceAnchors.dexMethod
+        if (!CinematicContainerForceAnchors.load(appContext)) {
+            ::resolveCinematicContainerForceAnchors.dexMethod
+            CinematicContainerForceAnchors.save(appContext)
+        }
         installForceAmbientModeRenderer()
     }.onFailure {
-        println("NexAlloy: Force ambient mode hook not installed: ${it.message}")
+        app.morphe.extension.shared.Logger.printException { "Force ambient mode hook not installed: ${it.message}" }
     }
 
     // Bypass Ambient mode restrictions: while the setting is on, pretend the device is not in

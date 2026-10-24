@@ -1,5 +1,7 @@
 package io.github.nexalloy.morphe.youtube.interaction.shorts
 
+import android.content.Context
+
 import de.robv.android.xposed.XposedHelpers
 import io.github.nexalloy.FindMethodFunc
 import io.github.nexalloy.PatchExecutor
@@ -112,17 +114,36 @@ internal object ReelPlaybackLegacyFingerprint : Fingerprint(
  * [resolveReelSkipMembers].
  */
 internal object ReelSkipAnchors {
-    @Volatile lateinit var userActionConstructorDescriptor: String
-
-    @Volatile lateinit var controllerMethodDescriptor: String
-
-    @Volatile lateinit var playerClassDescriptor: String
-
-    /** Instance field of the player class holding the reel sequence controller, if there is one. */
+    @Volatile var userActionConstructorDescriptor: String? = null
+    @Volatile var controllerMethodDescriptor: String? = null
+    @Volatile var playerClassDescriptor: String? = null
     @Volatile var controllerFieldDescriptor: String? = null
-
-    /** Field holding the Shorts player instance, read at the start of the repeat method. */
     @Volatile var playerFieldDescriptor: String? = null
+
+    val isInitialized: Boolean
+        get() = userActionConstructorDescriptor != null && controllerMethodDescriptor != null && playerClassDescriptor != null
+
+    fun save(context: Context) {
+        if (!isInitialized) return
+        val prefs = context.getSharedPreferences("nexalloy_anchors_reel_skip", Context.MODE_PRIVATE)
+        prefs.edit()
+            .putString("userActionConstructorDescriptor", userActionConstructorDescriptor)
+            .putString("controllerMethodDescriptor", controllerMethodDescriptor)
+            .putString("playerClassDescriptor", playerClassDescriptor)
+            .putString("controllerFieldDescriptor", controllerFieldDescriptor)
+            .putString("playerFieldDescriptor", playerFieldDescriptor)
+            .apply()
+    }
+
+    fun load(context: Context): Boolean {
+        val prefs = context.getSharedPreferences("nexalloy_anchors_reel_skip", Context.MODE_PRIVATE)
+        userActionConstructorDescriptor = prefs.getString("userActionConstructorDescriptor", null) ?: return false
+        controllerMethodDescriptor = prefs.getString("controllerMethodDescriptor", null) ?: return false
+        playerClassDescriptor = prefs.getString("playerClassDescriptor", null) ?: return false
+        controllerFieldDescriptor = prefs.getString("controllerFieldDescriptor", null)
+        playerFieldDescriptor = prefs.getString("playerFieldDescriptor", null)
+        return true
+    }
 }
 
 /**
@@ -223,12 +244,14 @@ internal object ReelSkipController {
  */
 private fun PatchExecutor.resolveReelSkipMembers() {
     val anchors = ReelSkipAnchors
+    val userActionConstructorDesc = anchors.userActionConstructorDescriptor ?: return
+    val controllerMethodDesc = anchors.controllerMethodDescriptor ?: return
 
     val userActionConstructor = runCatching {
-        DexMethod(anchors.userActionConstructorDescriptor).getConstructorInstance(classLoader)
+        DexMethod(userActionConstructorDesc).getConstructorInstance(classLoader)
     }.getOrNull()
     val controllerMethod = runCatching {
-        DexMethod(anchors.controllerMethodDescriptor).getMethodInstance(classLoader)
+        DexMethod(controllerMethodDesc).getMethodInstance(classLoader)
     }.getOrNull()
     val controllerField = anchors.controllerFieldDescriptor?.let {
         runCatching { org.luckypray.dexkit.util.InstanceUtil.getFieldInstance(classLoader, DexField(it)) }.getOrNull()
@@ -243,11 +266,10 @@ private fun PatchExecutor.resolveReelSkipMembers() {
 
     // Hand the Shorts player to the skip logic through the same listener the extension exposes
     // (setReelSequenceController), with a Proxy implementing the controller interface.
-    val skipClass = classLoader.loadClass("app.morphe.extension.youtube.patches.SkipLiveShortsPatch")
-    val controllerInterface = classLoader
-        .loadClass("app.morphe.extension.youtube.patches.SkipLiveShortsPatch\$ReelSequenceController")
+    val skipClass = app.morphe.extension.youtube.patches.SkipLiveShortsPatch::class.java
+    val controllerInterface = app.morphe.extension.youtube.patches.SkipLiveShortsPatch.ReelSequenceController::class.java
     val controllerProxy = java.lang.reflect.Proxy.newProxyInstance(
-        classLoader,
+        skipClass.classLoader,
         arrayOf(controllerInterface),
     ) { _, method, _ ->
         if (method.name == "patch_skipToNextShort") {
@@ -255,10 +277,8 @@ private fun PatchExecutor.resolveReelSkipMembers() {
         }
         null
     }
-    XposedHelpers.callStaticMethod(
-        skipClass,
-        "setReelSequenceController",
-        controllerProxy,
+    app.morphe.extension.youtube.patches.SkipLiveShortsPatch.setReelSequenceController(
+        controllerProxy as app.morphe.extension.youtube.patches.SkipLiveShortsPatch.ReelSequenceController
     )
 
     ReelPlaybackRepeatFingerprint.dexMethod.hookMethod {
@@ -282,7 +302,13 @@ val SkipLiveShorts = patch(
         SwitchPreference("morphe_skip_live_shorts")
     )
 
-    ::resolveReelSkipAnchors.dexMethod
-
-    resolveReelSkipMembers()
+    runCatching {
+        if (!ReelSkipAnchors.load(appContext)) {
+            ::resolveReelSkipAnchors.dexMethod
+            ReelSkipAnchors.save(appContext)
+        }
+        resolveReelSkipMembers()
+    }.onFailure {
+        app.morphe.extension.shared.Logger.printException { "Skip live shorts initialization failed: ${it.message}" }
+    }
 }

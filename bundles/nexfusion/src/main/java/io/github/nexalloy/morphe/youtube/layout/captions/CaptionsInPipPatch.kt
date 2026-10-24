@@ -1,5 +1,7 @@
 package io.github.nexalloy.morphe.youtube.layout.captions
 
+import android.content.Context
+
 import app.morphe.extension.shared.Logger
 import app.morphe.extension.youtube.patches.CaptionsInPipPatch
 import io.github.nexalloy.FindMethodFunc
@@ -16,6 +18,7 @@ import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreferenc
 import io.github.nexalloy.morphe.youtube.misc.playservice.VersionCheck
 import io.github.nexalloy.morphe.youtube.misc.playservice.is_20_29_or_greater
 import io.github.nexalloy.morphe.youtube.misc.playservice.is_21_02_or_greater
+import io.github.nexalloy.morphe.youtube.misc.playservice.is_21_42_or_greater
 import io.github.nexalloy.morphe.youtube.misc.settings.PreferenceScreen
 import io.github.nexalloy.patch
 import org.luckypray.dexkit.util.InstanceUtil
@@ -38,31 +41,65 @@ private const val CAPTIONS_OVERLAY_NAME = "player_overlay_caption"
  */
 internal object CaptionsInPipAnchors {
     /** Smali type descriptor of the player state class. */
-    @Volatile lateinit var stateTypeDescriptor: String
+    @Volatile var stateTypeDescriptor: String? = null
 
     /** Ordered field names the state's toString() prints. */
-    @Volatile lateinit var fieldNames: List<String>
+    @Volatile var fieldNames: List<String>? = null
 
     /** Constructor call argument index of isPipActive, excluding the state instance itself. */
     @Volatile var pipArgIndex: Int = -1
 
     /** Field of the player state class holding whether picture-in-picture is active. */
-    @Volatile lateinit var pipFieldDescriptor: String
+    @Volatile var pipFieldDescriptor: String? = null
 
     /** Descriptor of the player state constructor. */
-    @Volatile lateinit var stateCtorDescriptor: String
+    @Volatile var stateCtorDescriptor: String? = null
 
     /** Smali type descriptor of the captions overlay implementation class. */
-    @Volatile lateinit var captionsOverlayClassDescriptor: String
+    @Volatile var captionsOverlayClassDescriptor: String? = null
 
     /** Interface method names the player overlay layouts call for a visibility check. */
-    @Volatile lateinit var overlayCheckNames: Set<String>
+    @Volatile var overlayCheckNames: Set<String>? = null
 
     /** 21.02+ only: field of the caption track event handler holding the current track. */
     @Volatile var currentTrackFieldDescriptor: String? = null
 
     /** 21.02+ only: descriptor of the method that sets the caption track. */
     @Volatile var setTrackMethodDescriptor: String? = null
+
+    val isInitialized: Boolean
+        get() = pipFieldDescriptor != null && stateTypeDescriptor != null && captionsOverlayClassDescriptor != null
+
+    fun save(context: Context) {
+        if (!isInitialized) return
+        val prefs = context.getSharedPreferences("nexalloy_anchors_captions_pip", Context.MODE_PRIVATE)
+        prefs.edit()
+            .putString("stateTypeDescriptor", stateTypeDescriptor)
+            .putString("fieldNames", fieldNames?.joinToString(","))
+            .putInt("pipArgIndex", pipArgIndex)
+            .putString("pipFieldDescriptor", pipFieldDescriptor)
+            .putString("stateCtorDescriptor", stateCtorDescriptor)
+            .putString("captionsOverlayClassDescriptor", captionsOverlayClassDescriptor)
+            .putStringSet("overlayCheckNames", overlayCheckNames)
+            .putString("currentTrackFieldDescriptor", currentTrackFieldDescriptor)
+            .putString("setTrackMethodDescriptor", setTrackMethodDescriptor)
+            .apply()
+    }
+
+    fun load(context: Context): Boolean {
+        val prefs = context.getSharedPreferences("nexalloy_anchors_captions_pip", Context.MODE_PRIVATE)
+        val pip = prefs.getString("pipFieldDescriptor", null) ?: return false
+        stateTypeDescriptor = prefs.getString("stateTypeDescriptor", null) ?: return false
+        fieldNames = prefs.getString("fieldNames", "")?.split(",") ?: return false
+        pipArgIndex = prefs.getInt("pipArgIndex", -1)
+        pipFieldDescriptor = pip
+        stateCtorDescriptor = prefs.getString("stateCtorDescriptor", null) ?: return false
+        captionsOverlayClassDescriptor = prefs.getString("captionsOverlayClassDescriptor", null) ?: return false
+        overlayCheckNames = prefs.getStringSet("overlayCheckNames", null) ?: emptySet()
+        currentTrackFieldDescriptor = prefs.getString("currentTrackFieldDescriptor", null)
+        setTrackMethodDescriptor = prefs.getString("setTrackMethodDescriptor", null)
+        return true
+    }
 }
 
 /**
@@ -128,8 +165,11 @@ private val resolveCaptionsInPipAnchors: FindMethodFunc = findMethodDirect {
     // Resolve the state constructor and map the isPipActive argument to its field. Positionally
     // (like upstream does), assuming the constructor assigns the boolean parameters to fields in
     // parameter order, and verifying that correspondence at runtime.
-    val stateCtorMethod =
-        visibilityMatches.first().instructionMatches.first().instruction.methodRef!!
+    val stateCtorMatch = visibilityMatches.firstOrNull { match ->
+        val params = match.instructionMatches.first().instruction.methodRef?.parameters ?: return@firstOrNull false
+        params.size == fieldNames.size
+    } ?: visibilityMatches.first()
+    val stateCtorMethod = stateCtorMatch.instructionMatches.first().instruction.methodRef!!
     val ctorParams = stateCtorMethod.parameters
     if (ctorParams.size != fieldNames.size) {
         throw Exception("Unexpected player state constructor parameters: $ctorParams, fields: $fieldNames")
@@ -203,16 +243,23 @@ private fun classBinaryName(descriptor: String) =
  */
 private fun PatchExecutor.resolveCaptionsInPipMembers() {
     val anchors = CaptionsInPipAnchors
+    val pipFieldDesc = anchors.pipFieldDescriptor ?: return
+    val stateCtorDesc = anchors.stateCtorDescriptor ?: return
+    val stateTypeDesc = anchors.stateTypeDescriptor ?: return
+    val captionsOverlayClassDesc = anchors.captionsOverlayClassDescriptor ?: return
 
     CaptionsInPipRuntime.pipArgIndex = anchors.pipArgIndex
     CaptionsInPipRuntime.pipField = runCatching {
-        InstanceUtil.getFieldInstance(classLoader, DexField(anchors.pipFieldDescriptor))
+        InstanceUtil.getFieldInstance(classLoader, DexField(pipFieldDesc))
     }.getOrNull()?.also { it.isAccessible = true }
-        ?: throw Exception("Could not resolve isPipActive field: ${anchors.pipFieldDescriptor}")
+        ?: run {
+            Logger.printException { "Could not resolve isPipActive field: $pipFieldDesc" }
+            return
+        }
 
     // Verify the resolved field matches the pip constructor argument once a state is created,
     // since the positional mapping relies on constructor field assignment order.
-    DexMethod(anchors.stateCtorDescriptor).hookMethod {
+    DexMethod(stateCtorDesc).hookMethod {
         after { param ->
             if (!CaptionsInPipRuntime.fieldChecked) {
                 CaptionsInPipRuntime.fieldChecked = true
@@ -233,16 +280,22 @@ private fun PatchExecutor.resolveCaptionsInPipMembers() {
     // The captions overlay implementation carries the visibility check override. Resolve it from
     // the loaded implementation class, constrained to the same-named interface method the overlay
     // layouts call.
-    val stateClass = classLoader.loadClass(classBinaryName(anchors.stateTypeDescriptor))
+    val stateClass = classLoader.loadClass(classBinaryName(stateTypeDesc))
     val captionsOverlayClass =
-        classLoader.loadClass(classBinaryName(anchors.captionsOverlayClassDescriptor))
-    val visibleCandidates = captionsOverlayClass.declaredMethods.filter {
+        classLoader.loadClass(classBinaryName(captionsOverlayClassDesc))
+    val allMethods = (captionsOverlayClass.methods.toList() + captionsOverlayClass.declaredMethods.toList()).distinct()
+    val visibleCandidates = allMethods.filter {
         it.parameterTypes.size == 1 && it.parameterTypes[0] == stateClass &&
                 it.returnType == java.lang.Boolean.TYPE
     }
+    val checkNames = anchors.overlayCheckNames ?: emptySet()
     val visibilityMethod = visibleCandidates.singleOrNull()
-        ?: visibleCandidates.filter { it.name in anchors.overlayCheckNames }.singleOrNull()
-        ?: throw Exception("Could not resolve captions overlay visibility method: $visibleCandidates")
+        ?: visibleCandidates.filter { it.name in checkNames }.singleOrNull()
+        ?: run {
+            val methodsInfo = allMethods.map { m -> "${m.name}(${m.parameterTypes.map { it.name }.joinToString(",")}): ${m.returnType.name}" }
+            Logger.printException { "Could not resolve captions overlay visibility method on $captionsOverlayClass. stateClass=$stateClass, checkNames=$checkNames, visibleCandidates=$visibleCandidates, allMethods=$methodsInfo" }
+            null
+        } ?: return
 
     // Report the state's picture-in-picture as inactive while the captions overlay checks its
     // visibility, so hiding overlays in picture-in-picture does not hide the captions.
@@ -297,6 +350,12 @@ val CaptionsInPip = patch(
 ) {
     dependsOn(VersionCheck)
 
+    if (is_21_42_or_greater) {
+        // YouTube 21.42+ refactored caption overlay rendering away from player overlay interfaces
+        // to Litho components. Deactivate on 21.42+ to prevent broken toggles and resolution errors.
+        return@patch
+    }
+
     // Caption settings. Used to organize all caption related settings together,
     // mirroring the upstream 'morphe_captions_screen' preference group.
     PreferenceScreen.PLAYER.addPreferences(
@@ -314,7 +373,20 @@ val CaptionsInPip = patch(
         return@patch
     }
 
-    ::resolveCaptionsInPipAnchors.dexMethod
+    if (!CaptionsInPipAnchors.load(appContext)) {
+        runCatching {
+            ::resolveCaptionsInPipAnchors.dexMethod
+            CaptionsInPipAnchors.save(appContext)
+        }.onFailure {
+            Logger.printException { "Captions in PIP anchor resolution failed: ${it.message}" }
+        }
+    }
 
-    resolveCaptionsInPipMembers()
+    if (CaptionsInPipAnchors.isInitialized) {
+        runCatching {
+            resolveCaptionsInPipMembers()
+        }.onFailure {
+            Logger.printException { "Captions in PIP member resolution failed: ${it.message}" }
+        }
+    }
 }

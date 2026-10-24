@@ -13,6 +13,7 @@ import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreferenc
 import io.github.nexalloy.morphe.shared.misc.settings.preference.TextPreference
 import io.github.nexalloy.morphe.youtube.insertLiteralOverride
 import io.github.nexalloy.morphe.youtube.misc.playertype.PlayerTypeHook
+import io.github.nexalloy.morphe.youtube.misc.playservice.VersionCheck
 import io.github.nexalloy.morphe.youtube.misc.playservice.is_20_34_or_greater
 import io.github.nexalloy.morphe.youtube.misc.settings.PreferenceScreen
 import io.github.nexalloy.morphe.youtube.shared.mainActivityClass
@@ -27,7 +28,8 @@ val SwipeControls = patch(
     dependsOn(
         PlayerTypeHook,
         VideoInformationPatch,
-        soundBoostPatch
+        soundBoostPatch,
+        VersionCheck
     )
 
 //    if (!is_20_34_or_greater) {
@@ -120,11 +122,16 @@ val SwipeControls = patch(
         TextPreference("morphe_swipe_threshold", inputType = InputType.NUMBER),
     )
 
-    // Host lifecycle glue: upstream injects SwipeControlsHostActivity into the MainActivity
-    // class hierarchy (setSuperClass bytecode edit), which is impossible at runtime, and the
-    // stable extension no longer carries the composition-based host (removed `hookActivity`).
-    // Until a runtime host is reintroduced, only player overlay / change-video gating hooks run.
-    println("NexAlloy: Swipe controls host not attached (upstream hierarchy injection is not portable); feature disabled")
+    val mainActivity = runCatching {
+        classLoader.loadClass("com.google.android.apps.youtube.app.watchwhile.MainActivity")
+    }.getOrNull()
+    if (mainActivity != null) {
+        with(this.xposed) {
+            SwipeControlsHostActivity.hookActivity(mainActivity)
+        }
+    } else {
+        println("NexAlloy: Swipe controls host not attached (MainActivity class not found)")
+    }
 
     if (!is_20_34_or_greater) {
         insertLiteralOverride(45631116L, SwipeControlsHostActivity::allowSwipeChangeVideo)
