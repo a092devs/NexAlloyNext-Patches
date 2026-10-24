@@ -158,16 +158,24 @@ private val resolveCaptionsInPipAnchors: FindMethodFunc = findMethodDirect {
     var currentTrackFieldDescriptor: String? = null
     var setTrackMethodDescriptor: String? = null
     if (is_21_02_or_greater) {
-        val trackTypeDescriptor =
+        val trackTypeDescriptor = runCatching {
             CaptionTrackIsDisableOptionFingerprint.match().method.declaredClass!!.descriptor
+        }.getOrNull()
 
-        val trackEventMatch = getCaptionTrackEventFingerprint(trackTypeDescriptor).match()
-        // The first filter match reads the current track field of the event handler.
-        currentTrackFieldDescriptor =
-            trackEventMatch.instructionMatches.first().instruction.fieldRef!!.descriptor
-        // The last filter match sets the new track.
-        setTrackMethodDescriptor =
-            trackEventMatch.instructionMatches.last().instruction.methodRef!!.descriptor
+        if (trackTypeDescriptor != null) {
+            val trackEventMatch = runCatching {
+                getCaptionTrackEventFingerprint(trackTypeDescriptor).match()
+            }.getOrNull()
+
+            if (trackEventMatch != null) {
+                // The first filter match reads the current track field of the event handler.
+                currentTrackFieldDescriptor =
+                    trackEventMatch.instructionMatches.first().instruction.fieldRef!!.descriptor
+                // The last filter match sets the new track.
+                setTrackMethodDescriptor =
+                    trackEventMatch.instructionMatches.last().instruction.methodRef!!.descriptor
+            }
+        }
     }
 
     CaptionsInPipAnchors.stateTypeDescriptor = stateTypeDescriptor

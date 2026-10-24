@@ -6,6 +6,7 @@ import io.github.nexalloy.PatchExecutor
 import io.github.nexalloy.hookMethod
 import io.github.nexalloy.morphe.AccessFlags
 import io.github.nexalloy.morphe.Fingerprint
+import io.github.nexalloy.morphe.StrictQuery
 import io.github.nexalloy.morphe.InstructionLocation.MatchAfterWithin
 import io.github.nexalloy.morphe.Opcode
 import io.github.nexalloy.morphe.anyInstruction
@@ -41,6 +42,7 @@ internal object ReelPlaybackRepeatParentFingerprint : Fingerprint(
     )
 )
 
+@StrictQuery
 internal object ReelPlaybackRepeatFingerprint : Fingerprint(
     classFingerprint = ReelPlaybackRepeatParentFingerprint,
     returnType = "V",
