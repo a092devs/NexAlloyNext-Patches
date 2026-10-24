@@ -183,15 +183,5 @@ object NexFusionPatches : PatchBundle {
             ),
             appIconColor = 0x2AABEE,
         ),
-        AppPatchInfo(
-            appName = "Nagram XF",
-            packageName = "fork.risin42.nagramx",
-            patches = TelegramPatches,
-            targets = listOf(
-                AppTarget("12.10.6-e346c5e"),
-                AppTarget("12.10.6"),
-            ),
-            appIconColor = 0x2AABEE,
-        ),
     )
 }

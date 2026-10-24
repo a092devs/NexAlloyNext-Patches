@@ -14,8 +14,8 @@ import io.github.nexalloy.PatcherLog
 import io.github.nexalloy.patch
 
 /**
- * Telegram & Nagram XF patches ported from SysAdminDoc/HushTelegram (GPL-3.0),
- * compatible with official Telegram (Play & Web) and Nagram XF (fork.risin42.nagramx).
+ * Telegram patches ported from SysAdminDoc/HushTelegram (GPL-3.0),
+ * compatible with official Telegram (Play & Web).
  */
 
 val TelegramHideAds = patch(

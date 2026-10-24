@@ -10,7 +10,7 @@ bundles after CI succeeds.
 ## 3.4.8
 
 - `NexFusion` 3.4.8:
-  * Telegram & Nagram XF Support: Ported comprehensive feature suite from `SysAdminDoc/HushTelegram` supporting official Telegram (Google Play & Web, 13.1.0 and 12.10.6) as well as the Nagram XF client (`fork.risin42.nagramx`).
+  * Telegram Support: Ported comprehensive feature suite from `SysAdminDoc/HushTelegram` supporting official Telegram (Google Play & Web, 13.1.0 and 12.10.6).
   * Features Included:
     - Hide Ads & Sponsored Content: Suppresses channel sponsored messages (`MessagesController.getSponsoredMessages`), video player ads (`VideoAds.load`), channel recommendations, and network ad requests.
     - Hide Stories: Suppresses story fetching and indicators (`StoriesController.loadAllStories`, `hasStories`).
