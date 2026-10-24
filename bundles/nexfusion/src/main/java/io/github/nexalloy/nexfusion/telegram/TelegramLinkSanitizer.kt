@@ -1,0 +1,56 @@
+package io.github.nexalloy.nexfusion.telegram
+
+import android.net.Uri
+
+/**
+ * Sanitizes URLs opened or shared in Telegram by stripping marketing and analytics tracking parameters.
+ */
+object TelegramLinkSanitizer {
+
+    private val TRACKING_PARAMS = setOf(
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "utm_term",
+        "utm_content",
+        "utm_id",
+        "utm_name",
+        "gclid",
+        "fbclid",
+        "igshid",
+        "si",
+        "mc_eid",
+        "yclid",
+        "msclkid",
+        "dclid",
+        "twclid"
+    )
+
+    fun sanitize(url: String): String {
+        if (!url.startsWith("http://", ignoreCase = true) && !url.startsWith("https://", ignoreCase = true)) {
+            return url
+        }
+
+        val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return url
+        val queryNames = runCatching { uri.queryParameterNames }.getOrNull()
+        if (queryNames.isNullOrEmpty()) return url
+
+        val hasTracking = queryNames.any { it.lowercase() in TRACKING_PARAMS }
+        if (!hasTracking) return url
+
+        val builder = uri.buildUpon().clearQuery()
+        for (name in queryNames) {
+            if (name.lowercase() !in TRACKING_PARAMS) {
+                for (value in uri.getQueryParameters(name)) {
+                    builder.appendQueryParameter(name, value)
+                }
+            }
+        }
+
+        return builder.build().toString()
+    }
+
+    fun formatNumber(number: Int): String {
+        return String.format(java.util.Locale.US, "%,d", number)
+    }
+}

@@ -20,6 +20,7 @@ import io.github.nexalloy.nexfusion.mixplorer.MixplorerPatches
 import io.github.nexalloy.nexfusion.protonvpn.ProtonVpnPatches
 import io.github.nexalloy.nexfusion.reddit.RedditPatches
 import io.github.nexalloy.nexfusion.spotify.SpotifyPatches
+import io.github.nexalloy.nexfusion.telegram.TelegramPatches
 import io.github.nexalloy.nexfusion.twitter.TwitterPatches
 
 /** Entry point of the NexFusion Patches bundle, named in its manifest. */
@@ -161,6 +162,36 @@ object NexFusionPatches : PatchBundle {
                 AppTarget("12.35.0-prod.01"),
             ),
             appIconColor = 0x000000,
+        ),
+        AppPatchInfo(
+            appName = "Telegram",
+            packageName = "org.telegram.messenger",
+            patches = TelegramPatches,
+            targets = listOf(
+                AppTarget("13.1.0"),
+                AppTarget("12.10.6"),
+            ),
+            appIconColor = 0x2AABEE,
+        ),
+        AppPatchInfo(
+            appName = "Telegram (Web)",
+            packageName = "org.telegram.messenger.web",
+            patches = TelegramPatches,
+            targets = listOf(
+                AppTarget("13.1.0"),
+                AppTarget("12.10.6"),
+            ),
+            appIconColor = 0x2AABEE,
+        ),
+        AppPatchInfo(
+            appName = "Nagram XF",
+            packageName = "fork.risin42.nagramx",
+            patches = TelegramPatches,
+            targets = listOf(
+                AppTarget("12.10.6-e346c5e"),
+                AppTarget("12.10.6"),
+            ),
+            appIconColor = 0x2AABEE,
         ),
     )
 }

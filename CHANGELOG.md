@@ -7,6 +7,38 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.4.8
+
+- `NexFusion` 3.4.8:
+  * Telegram & Nagram XF Support: Ported comprehensive feature suite from `SysAdminDoc/HushTelegram` supporting official Telegram (Google Play & Web, 13.1.0 and 12.10.6) as well as the Nagram XF client (`fork.risin42.nagramx`).
+  * Features Included:
+    - Hide Ads & Sponsored Content: Suppresses channel sponsored messages (`MessagesController.getSponsoredMessages`), video player ads (`VideoAds.load`), channel recommendations, and network ad requests.
+    - Hide Stories: Suppresses story fetching and indicators (`StoriesController.loadAllStories`, `hasStories`).
+    - Hide Sponsored Proxy Channel: Hides sponsored proxy promotion channels from the chat list and folders.
+    - Keep Deleted Messages: Prevents deletion of received messages on device when sender deletes them (`MessagesStorage.markMessagesAsDeleted`).
+    - Exact Numbers: Shows full unrounded member, subscriber, view, and reaction counts (e.g. 12,345 instead of 12.3K).
+    - Faster Downloads: Unlocks 512 KB chunks and 8 concurrent parallel connections (`FileLoadOperation.updateParams`).
+    - Disable Update Checks: Suppresses standalone update checks and in-app update prompts.
+    - Disable Analytics & Diagnostics: Blocks telemetry, crash reporting, and VoIP call diagnostic uploads.
+    - Open Links Externally: Opens web links directly in external default browser (`Browser.openUrl`).
+    - Strip Link Tracking: Sanitizes links by stripping `utm_*`, `gclid`, `fbclid`, `igshid`, and `si` tracking tags.
+    - Reveal Spoilers: Automatically reveals covered spoiler text, photos, and videos.
+    - Hide Phone Number: Masks phone number with dots in Settings and user profile screens.
+    - Disable Double-Tap Reactions: Stops accidental message double-tap quick reactions.
+    - Hide Keyboard on Scroll: Closes on-screen keyboard when scrolling chats.
+    - Hide Commerce & Upsells: Hides Premium, Stars, Gifts, and Wallet sales entry points.
+    - Hide Greeting Stickers: Hides empty-chat greeting sticker suggestions.
+    - Hide Translate Bar: Hides the floating translation banner in foreign-language chats.
+    - Hide Blocked Users in Groups: Leaves messages from blocked users out of group chats.
+    - Play Voice Messages One at a Time: Prevents consecutive voice/video message autoplay.
+    - Keep Videos Muted on Volume Keys: Adjusts system volume without unmuting video playback.
+    - Disable Archive Pull Down: Disables pull-down on chat list to reveal archive.
+    - Disable Channel Pull Up: Disables pull-up at bottom of channel to jump to next channel.
+    - Disable Chat Swipe Actions: Disables sideways swipe gestures on chat list rows.
+    - Disable Draft Link Previews: Stops automatic link preview requests while drafting.
+    - Use System Font: Renders text using phone system font instead of bundled Roboto files.
+    - AMOLED Black Dark Theme: Replaces dark background surfaces with pure `#000000` for OLED screens.
+
 ## 3.4.7
 
 - `NexFusion` 3.4.7:
