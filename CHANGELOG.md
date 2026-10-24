@@ -7,6 +7,15 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.4.5
+
+- `NexFusion` 3.4.5:
+  * YouTube Patch Fixes: Resolved failing patches on YouTube 21.42.243. Added `@StrictQuery` filtering to `ReelPlaybackRepeatFingerprint` in `SkipLiveShortsPatch` to isolate the exact reel repeat handler, and added resilient fallback for caption track event handling in `CaptionsInPipPatch` for 21.42+ where track event routing was refactored.
+  * Classic YouTube 5-Tab Navigation: Fully restored the classic 5-tab bottom navigation (`Home`, `Shorts`, `+`, `Subscriptions`, `You`) via dynamic runtime injection, ensuring the Subscriptions tab is present and accessible. Removed redundant top category filter chips ("Podcasts", "Live", "Music", etc.) from the Home feed header.
+  * Seekbar Tap-to-Seek & Slide-to-Seek: Added `Enable tap to seek`, `Enable slide to seek`, and `Disable precise seeking gesture` patches to restore classic tap-anywhere seekbar navigation and prevent unwanted fullscreen precise-seeking drawer expansion.
+  * Compatibility Targets: Added support for Facebook 584 (`584.0.0.51.56`) with verified feed and reels ad-blocking finders.
+  * Codebase Maintenance: Cleaned up temporary test probes and investigation files, ensuring clean repository trees and reliable release bundle generation.
+
 ## 3.4.4
 
 - `NexFusion` 3.4.4:
