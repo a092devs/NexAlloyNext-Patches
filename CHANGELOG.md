@@ -7,6 +7,19 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.4.7
+
+- `NexFusion` 3.4.7:
+  * Gboard 18.5.x Support: Added official target support for Gboard `18.5.4.993608717-release-arm64-v8a` and `18.5.3.993608717-release-arm64-v8a`.
+  * Feature Port from PixelBoard (v1.3.0 by Akshay Kadam):
+    - Extended Clipboard History Retention Slider: Configures Gboard's native `LabelSummarySliderPreference` in clipboard settings with discrete duration choices (1 hour, 24 hours, 7 days, 30 days, Never). Includes clamping protection against Material Slider `value > valueTo` crashes.
+    - Gemini Rambler Dictation Prompt Fix: Restores verbatim spoken transcripts into the committed text span and resets agentic intent (intent 0) whenever Rambler misclassifies speech as an AI prompt instruction, ensuring speech-to-text always types what was spoken.
+    - Signature Verification Bypass: Added `Signature verification bypass` patch targeting `sfr` (18.5.3/18.5.4), `ryi` (18.4.1), `rvl` (18.3.1), and `rpv` (18.0.3) to allow offline speech and AI models to load cleanly.
+    - Rambler Selectors & Mic Activation: Updated capability selectors for Gboard 18.5.x (`nca`, `mwg`), hooked toolbar mic activation (`mjz.B`), and suppressed selection reversion (`fde.hT`).
+    - AI Writing Tools All Languages: Unlocked all languages and locales for Gemini AI writing tools and Proofread (`*` language tags allowlist).
+    - Speech Pack Download Loop Guard: Added Language Download Guard preventing infinite download request retry loops in speech services.
+    - Samsung One UI & Vivo Clipboard Sync: Hooked foreground IME focus and `ClipboardDataHandler` (`frc.ft` / `fml.ft`) to guarantee primary clip capture.
+
 ## 3.4.6
 
 - `NexFusion` 3.4.6:

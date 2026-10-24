@@ -79,6 +79,8 @@ object NexFusionPatches : PatchBundle {
             packageName = "com.google.android.inputmethod.latin",
             patches = GboardPatches,
             targets = listOf(
+                AppTarget("18.5.4.993608717-release-arm64-v8a"),
+                AppTarget("18.5.3.993608717-release-arm64-v8a"),
                 AppTarget("18.4.1.985164140-release-arm64-v8a"),
                 AppTarget("18.4.1.985164140-beta-arm64-v8a"),
                 AppTarget("18.3.1.977415014-release-arm64-v8a"),

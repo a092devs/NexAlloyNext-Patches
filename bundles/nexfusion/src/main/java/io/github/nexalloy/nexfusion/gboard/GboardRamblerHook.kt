@@ -47,17 +47,22 @@ object GboardRamblerHook {
 
     fun install(classLoader: ClassLoader) {
         hookVoiceSettingsSelectors(classLoader)
+        hookMicActivation(classLoader)
+        hookVoiceTextPromptFix(classLoader)
+        hookLanguageDownloadGuard(classLoader)
         hookImeLifecycle(classLoader)
+        hookClipboardDataHandler(classLoader)
         hookSpellCheckerChips(classLoader)
         suppressPromoBanners(classLoader)
     }
 
     private fun hookVoiceSettingsSelectors(classLoader: ClassLoader) {
         // Known selector capability checkers across Gboard releases:
+        // 18.5.3/18.5.4: nca.a(Context), mwg.a(Context)
         // 18.4.1+: mvq.a(Context)
         // 18.3.1+: aaeo.a(Context)
         // 18.0.3+: mqk.a(Context)
-        val selectorClassNames = listOf("mvq", "aaeo", "mqk")
+        val selectorClassNames = listOf("nca", "mwg", "mvq", "aaeo", "mqk")
         for (className in selectorClassNames) {
             val clazz = runCatching { classLoader.loadClass(className) }.getOrNull() ?: continue
             val method = clazz.declaredMethods.firstOrNull {
@@ -80,7 +85,7 @@ object GboardRamblerHook {
         }
 
         // Default selection suppression: prevent Gboard from reverting Rambler to standard
-        val defaultSuppressionClasses = listOf("fde" /* 18.4.1 */, "kcm" /* 18.3.1 */, "fbl" /* 18.0.3 */)
+        val defaultSuppressionClasses = listOf("fde" /* 18.4.1 & 18.5.3/18.5.4 */, "kcm" /* 18.3.1 */, "fbl" /* 18.0.3 */)
         for (className in defaultSuppressionClasses) {
             val clazz = runCatching { classLoader.loadClass(className) }.getOrNull() ?: continue
             for (m in clazz.declaredMethods) {
@@ -97,6 +102,82 @@ object GboardRamblerHook {
                         Log.i(TAG, "NexFusion: Hooked default selection suppression $className.${m.name}()")
                     }
                 }
+            }
+        }
+    }
+
+    private fun hookMicActivation(classLoader: ClassLoader) {
+        // Gboard 18.4.1+ and 18.5.3/18.5.4: mjz.B(Context) -> boolean activates toolbar mic
+        val micClassNames = listOf("mjz")
+        for (className in micClassNames) {
+            val clazz = runCatching { classLoader.loadClass(className) }.getOrNull() ?: continue
+            val method = clazz.declaredMethods.firstOrNull {
+                it.name == "B" && it.parameterTypes.size == 1 && it.parameterTypes[0] == Context::class.java &&
+                        it.returnType == Boolean::class.javaPrimitiveType
+            } ?: continue
+
+            runCatching {
+                XposedBridge.hookMethod(method, object : XC_MethodHook() {
+                    override fun beforeHookedMethod(param: MethodHookParam) {
+                        param.result = true
+                    }
+                })
+                Log.i(TAG, "NexFusion: Hooked Gboard toolbar mic activation $className.B(Context)")
+            }
+        }
+    }
+
+    private fun hookVoiceTextPromptFix(classLoader: ClassLoader) {
+        // Gboard 18.5.3/18.5.4: fhv.j(Laaru; Lsgm; String)
+        // Gboard 18.4.1: fde.j(Laajc; Lrzc; String)
+        val voiceTextClasses = listOf("fhv", "fde")
+        for (className in voiceTextClasses) {
+            val clazz = runCatching { classLoader.loadClass(className) }.getOrNull() ?: continue
+            val method = clazz.declaredMethods.firstOrNull {
+                it.name == "j" && it.parameterTypes.size == 3 &&
+                        it.parameterTypes[2] == String::class.java &&
+                        it.returnType == Void.TYPE
+            } ?: continue
+
+            runCatching {
+                XposedBridge.hookMethod(method, object : XC_MethodHook() {
+                    override fun beforeHookedMethod(param: MethodHookParam) {
+                        val proto = param.args.getOrNull(0) ?: return
+                        GboardRamblerDictationRuntime.filterVoiceText(proto)
+                    }
+                })
+                Log.i(TAG, "NexFusion: Hooked Rambler voice text prompt fix in $className.j(...)")
+            }
+        }
+    }
+
+    private val languageDownloadRequests = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+
+    private fun hookLanguageDownloadGuard(classLoader: ClassLoader) {
+        // Gboard 18.5.3/18.5.4: sxs.c(String, syk, Consumer)
+        // Gboard 18.4.1: sqk.c(String, src, Consumer)
+        // Gboard 18.3.1: snm.c(String, soe, Consumer)
+        val downloadClasses = listOf("sxs", "sqk", "snm")
+        for (className in downloadClasses) {
+            val clazz = runCatching { classLoader.loadClass(className) }.getOrNull() ?: continue
+            val method = clazz.declaredMethods.firstOrNull {
+                it.name == "c" && it.parameterTypes.size == 3 &&
+                        it.parameterTypes[0] == String::class.java &&
+                        it.returnType == Void.TYPE
+            } ?: continue
+
+            runCatching {
+                XposedBridge.hookMethod(method, object : XC_MethodHook() {
+                    override fun beforeHookedMethod(param: MethodHookParam) {
+                        val tag = param.args.getOrNull(0) as? String ?: return
+                        val source = param.args.getOrNull(1)
+                        val key = "$tag|$source"
+                        if (languageDownloadRequests.putIfAbsent(key, true) != null) {
+                            param.result = null
+                        }
+                    }
+                })
+                Log.i(TAG, "NexFusion: Hooked language download guard in $className.c(...)")
             }
         }
     }
@@ -140,7 +221,7 @@ object GboardRamblerHook {
                     override fun afterHookedMethod(param: MethodHookParam) {
                         val ime = param.thisObject as? Context ?: return
                         ensureRamblerPreferences(ime)
-                        syncClipboardOnForeground(ime)
+                        syncClipboardOnForeground(ime, param.thisObject)
                     }
                 }
             )
@@ -171,7 +252,37 @@ object GboardRamblerHook {
         }
     }
 
-    private fun syncClipboardOnForeground(context: Context) {
+    private fun hookClipboardDataHandler(classLoader: ClassLoader) {
+        // Gboard 18.5.3/18.5.4: frc.ft(...)
+        // Gboard 18.4.1/18.3.1: fml.ft(...)
+        val clipboardHandlerClasses = listOf("frc", "fml")
+        for (className in clipboardHandlerClasses) {
+            val clazz = runCatching { classLoader.loadClass(className) }.getOrNull() ?: continue
+            val ftMethod = clazz.declaredMethods.firstOrNull {
+                it.name == "ft" && it.returnType == Boolean::class.javaPrimitiveType
+            } ?: continue
+
+            runCatching {
+                XposedBridge.hookMethod(ftMethod, object : XC_MethodHook() {
+                    override fun afterHookedMethod(param: MethodHookParam) {
+                        val receiver = param.thisObject ?: return
+                        for (field in receiver.javaClass.declaredFields) {
+                            if (field.name == "f") {
+                                field.isAccessible = true
+                                val handler = field.get(receiver)
+                                if (handler is ClipboardManager.OnPrimaryClipChangedListener) {
+                                    handler.onPrimaryClipChanged()
+                                }
+                            }
+                        }
+                    }
+                })
+                Log.i(TAG, "NexFusion: Hooked clipboard sync handler in $className.ft(...)")
+            }
+        }
+    }
+
+    private fun syncClipboardOnForeground(context: Context, imeInstance: Any? = null) {
         try {
             val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
             if (cm.hasPrimaryClip()) {
@@ -179,6 +290,20 @@ object GboardRamblerHook {
                 if (clip != null && clip.itemCount > 0) {
                     // Triggering clip reading confirms foreground permission and notifies listeners
                     clip.getItemAt(0)?.coerceToText(context)
+                }
+            }
+            if (imeInstance != null) {
+                for (field in imeInstance.javaClass.declaredFields) {
+                    val fieldType = field.type
+                    if (ClipboardManager.OnPrimaryClipChangedListener::class.java.isAssignableFrom(fieldType) ||
+                        fieldType.name.contains("ClipboardDataHandler")
+                    ) {
+                        field.isAccessible = true
+                        val handler = field.get(imeInstance)
+                        if (handler is ClipboardManager.OnPrimaryClipChangedListener) {
+                            handler.onPrimaryClipChanged()
+                        }
+                    }
                 }
             }
         } catch (_: Throwable) {

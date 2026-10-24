@@ -240,6 +240,10 @@ val GboardAiWritingTools = patch(
         "gboard_imagen_api_host" to FlagOverride.forceString("staging-gboard-imagen-pa.sandbox.googleapis.com"),
         "writing_helper_model_version" to FlagOverride.forceString("IMAGE_AND_TEXT_GENERATION"),
         "writing_helper_text_stylization_model_version" to FlagOverride.forceString("IMAGE_AND_TEXT_GENERATION"),
+        "writing_helper_supported_language_tags" to FlagOverride.forceString("*"),
+        "llm_pc_supported_language_tags" to FlagOverride.forceString("*"),
+        "writing_tools_supported_locales" to FlagOverride.forceString("*"),
+        "proofread_supported_locales" to FlagOverride.forceString("*"),
         "enable_device_intelligence" to FlagOverride.forceTrue(),
         "enable_access_point_keyboard" to FlagOverride.forceTrue(),
         "enable_nga_lab_modeless_smartedit" to FlagOverride.forceTrue(),
@@ -441,6 +445,24 @@ val GboardCandidateEmojiVibrancy = patch(
     }
 }
 
+val GboardClipboardHistorySlider = patch(
+    name = "Extended clipboard history retention slider",
+    description = "Configures Gboard's native clipboard history retention slider with discrete duration choices (1h, 24h, 7d, 30d, Never).",
+) {
+    gboardFlagOverrides(
+        "enable_extended_clipboard_history" to FlagOverride.forceBoolean(),
+        "enable_system_clipboard_direct_paste_for_quick_paste" to FlagOverride.forceBoolean(),
+    )
+    GboardClipboardHistoryRuntime.install(classLoader)
+}
+
+val GboardSignatureBypass = patch(
+    name = "Signature verification bypass",
+    description = "Bypasses internal signature checks for Google Play services and offline speech/AI models.",
+) {
+    GboardSignatureBypassHook.install(classLoader)
+}
+
 val GboardPatches = arrayOf(
     GboardSettingsMenu,
     GboardRamblerVoiceTyping,
@@ -449,6 +471,8 @@ val GboardPatches = arrayOf(
     GboardSpellCheckerChips,
     GboardCandidateEmojiVibrancy,
     GboardSmartAutoCorrection,
+    GboardClipboardHistorySlider,
+    GboardSignatureBypass,
     GboardCursorTrackpad,
     GboardQuickInsert,
     GboardEmojiSize,
