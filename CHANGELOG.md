@@ -7,6 +7,11 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.4.9
+
+- `NexFusion` 3.4.9:
+  * Telegram Hotfix: Scoped HushTelegram feature suite strictly to official Telegram clients (Google Play & Web, 13.1.0 and 12.10.6), removing third-party fork targets.
+
 ## 3.4.8
 
 - `NexFusion` 3.4.8:
