@@ -518,6 +518,233 @@ val HideStoryFollow = patch(
     }.onFailure { PatcherLog.info(it) { "NexFusion Instagram: Hide Follow on stories hook skipped" } }
 }
 
+private const val FEED_HEADER = "row_feed_profile_header"
+private const val INLINE_FOLLOW = "inline_follow_button"
+private const val HEADER_FOLLOW = "follow_in_header"
+private const val SUBSCRIBE = "subscribe_button"
+private const val SUBSCRIBE_SHORTCUT = "subscribe_shortcut_button"
+private const val SUBSCRIBE_SHORTCUT_STUB = "subscribe_shortcut_stub"
+
+private val feedHiderSessions = Collections.synchronizedMap(WeakHashMap<Activity, ViewTreeObserver.OnPreDrawListener>())
+
+private fun installFeedFollowHider(activity: Activity) {
+    if (feedHiderSessions.containsKey(activity)) return
+    val decorView = activity.window?.decorView ?: return
+    val context = activity
+
+    val headerId = context.resources.getIdentifier(FEED_HEADER, "id", context.packageName)
+    val inlineFollowId = context.resources.getIdentifier(INLINE_FOLLOW, "id", context.packageName)
+    val headerFollowId = context.resources.getIdentifier(HEADER_FOLLOW, "id", context.packageName)
+    val subscribeId = context.resources.getIdentifier(SUBSCRIBE, "id", context.packageName)
+    val subscribeShortcutId = context.resources.getIdentifier(SUBSCRIBE_SHORTCUT, "id", context.packageName)
+    val subscribeShortcutStubId = context.resources.getIdentifier(SUBSCRIBE_SHORTCUT_STUB, "id", context.packageName)
+
+    val targetButtons = setOf(inlineFollowId, headerFollowId, subscribeId).filter { it != 0 }.toSet()
+    val anywhereButtons = setOf(subscribeShortcutId, subscribeShortcutStubId).filter { it != 0 }.toSet()
+
+    if (targetButtons.isEmpty() && anywhereButtons.isEmpty()) return
+
+    fun hideFeedFollowButtons(root: View, insideHeader: Boolean = false, budget: IntArray = intArrayOf(5000)): Boolean {
+        if (budget[0]-- <= 0) return false
+        var changed = false
+        val id = root.id
+        val isHeader = insideHeader || (headerId != 0 && id == headerId)
+        if (id != View.NO_ID && root !is ViewStub) {
+            if ((isHeader && id in targetButtons) || id in anywhereButtons) {
+                if (root.visibility != View.GONE) {
+                    root.visibility = View.GONE
+                    changed = true
+                }
+            }
+        }
+        if (root is ViewGroup) {
+            for (i in 0 until root.childCount) {
+                changed = hideFeedFollowButtons(root.getChildAt(i), isHeader, budget) || changed
+            }
+        }
+        return changed
+    }
+
+    val preDrawListener = ViewTreeObserver.OnPreDrawListener {
+        hideFeedFollowButtons(decorView)
+        true
+    }
+
+    feedHiderSessions[activity] = preDrawListener
+    decorView.viewTreeObserver.addOnPreDrawListener(preDrawListener)
+}
+
+/**
+ * Takes the Follow and Subscribe buttons off feed posts, keeping the post header clean.
+ * Ported from SysAdminDoc/HushGram #248.
+ */
+val HideFeedFollow = patch(
+    name = "Hide Follow on feed posts",
+    description = "Takes the Follow and Subscribe buttons off feed posts, keeping the post header clean.",
+    use = false,
+) {
+    runCatching {
+        val activityClass = classLoader.loadClass("android.app.Activity")
+        for (method in activityClass.declaredMethods) {
+            if (method.name == "onResume" && method.parameterTypes.isEmpty()) {
+                XposedBridge.hookMethod(method, object : XC_MethodHook() {
+                    override fun afterHookedMethod(param: MethodHookParam) {
+                        val activity = param.thisObject as? Activity ?: return
+                        installFeedFollowHider(activity)
+                    }
+                })
+            }
+        }
+        PatcherLog.info { "NexFusion Instagram: Hide Follow on feed posts hook installed" }
+    }.onFailure { PatcherLog.info(it) { "NexFusion Instagram: Hide Follow on feed posts hook skipped" } }
+}
+
+/**
+ * Stops Instagram from saving recent search clicks to your search history.
+ * Ported from SysAdminDoc/HushGram.
+ */
+val DontSaveRecentSearches = patch(
+    name = "Don't save recent searches",
+    description = "Prevents searches from being added to your recent search history.",
+    use = false,
+) {
+    InstagramRequestFilter.enable(InstagramRequestFilter.Rule.RECENT_SEARCHES)
+    InstagramRequestFilter.ensureHooks(classLoader)
+    PatcherLog.info { "NexFusion Instagram: recent searches Tigon filter enabled" }
+}
+
+/**
+ * Stops Instagram from sending watched reels seen state to its servers.
+ * Ported from SysAdminDoc/HushGram.
+ */
+val DontSendReelWatchHistory = patch(
+    name = "Don't send reel watch history",
+    description = "Stops Instagram from sending watched reel status to its servers, keeping your watch history private.",
+    use = false,
+) {
+    InstagramRequestFilter.enable(InstagramRequestFilter.Rule.REEL_WATCH_HISTORY)
+    InstagramRequestFilter.ensureHooks(classLoader)
+    PatcherLog.info { "NexFusion Instagram: reel watch history Tigon filter enabled" }
+}
+
+private val metaAiHiderSessions = Collections.synchronizedMap(WeakHashMap<Activity, ViewTreeObserver.OnPreDrawListener>())
+
+private val META_AI_VIEW_IDS = listOf(
+    "meta_ai",
+    "meta_ai_ring",
+    "meta_ai_button",
+    "meta_ai_pill",
+    "meta_ai_badge",
+    "meta_ai_inbox_row",
+    "ask_meta_ai",
+    "meta_ai_summary",
+    "meta_ai_sources",
+    "bottomSearchSuggestionPillsHelper",
+    "row_thread_composer_meta_ai_discover",
+    "row_thread_composer_meta_ai_invocation",
+    "row_thread_composer_meta_ai_voice",
+)
+
+private val META_AI_MOBILE_CONFIG_FLAGS = setOf(
+    0x81067100111e9fL, // Search tab bar "Search with Meta AI", search results & answers
+    0x81040c0006109dL, // Messages inbox "Search or ask Meta AI"
+    0x81040a001b1093L, // Messages search bar Meta AI ring
+    0x81168700017258L, // Home top bar Meta AI chats / hatch button
+    0x8110c200115a92L, // About this reel summary factory
+)
+
+private fun installMetaAiViewHider(activity: Activity) {
+    if (metaAiHiderSessions.containsKey(activity)) return
+    val decorView = activity.window?.decorView ?: return
+    val context = activity
+
+    val targetIds = META_AI_VIEW_IDS.mapNotNull { name ->
+        val id = context.resources.getIdentifier(name, "id", context.packageName)
+        if (id != 0) id else null
+    }.toSet()
+
+    fun hideMetaAiViews(root: View, budget: IntArray = intArrayOf(5000)): Boolean {
+        if (budget[0]-- <= 0) return false
+        var changed = false
+        val id = root.id
+        if (id != View.NO_ID && root !is ViewStub) {
+            val resName = runCatching { context.resources.getResourceEntryName(id) }.getOrNull()?.lowercase(Locale.ROOT)
+            val shouldHide = (targetIds.isNotEmpty() && id in targetIds) ||
+                (resName != null && (resName.contains("meta_ai") || resName.contains("ask_meta_ai")))
+            if (shouldHide && root.visibility != View.GONE) {
+                root.visibility = View.GONE
+                changed = true
+            }
+        }
+        if (root is ViewGroup) {
+            for (i in 0 until root.childCount) {
+                changed = hideMetaAiViews(root.getChildAt(i), budget) || changed
+            }
+        }
+        return changed
+    }
+
+    val preDrawListener = ViewTreeObserver.OnPreDrawListener {
+        hideMetaAiViews(decorView)
+        true
+    }
+
+    metaAiHiderSessions[activity] = preDrawListener
+    decorView.viewTreeObserver.addOnPreDrawListener(preDrawListener)
+}
+
+/**
+ * Removes Meta AI from Instagram: search bar and results, direct messages inbox, home top bar,
+ * reel summaries, and AI network requests.
+ * Ported and adapted from SysAdminDoc/HushGram (GPL-3.0).
+ */
+val HideMetaAi = patch(
+    name = "Hide Meta AI",
+    description = "Removes Meta AI from search, inbox, home top bar, reels menus, and blocks all Meta AI endpoints.",
+    use = true,
+) {
+    // 1. Enable network filter
+    InstagramRequestFilter.enable(InstagramRequestFilter.Rule.META_AI)
+    InstagramRequestFilter.ensureHooks(classLoader)
+
+    // 2. MobileConfig flags interceptor
+    runCatching {
+        val unsafeContextClass = classLoader.loadClass("com.facebook.mobileconfig.factory.MobileConfigUnsafeContext")
+        val hook = object : XC_MethodHook() {
+            override fun beforeHookedMethod(param: MethodHookParam) {
+                val paramId = param.args.firstOrNull { it is Long } as? Long ?: return
+                if (paramId in META_AI_MOBILE_CONFIG_FLAGS) {
+                    param.result = false
+                }
+            }
+        }
+        var hooked = 0
+        for (method in unsafeContextClass.declaredMethods) {
+            if (method.returnType == java.lang.Boolean.TYPE && method.parameterTypes.any { it == java.lang.Long.TYPE }) {
+                XposedBridge.hookMethod(method, hook)
+                hooked++
+            }
+        }
+        PatcherLog.info { "NexFusion Instagram: MobileConfigUnsafeContext Meta AI flags hooked on $hooked methods" }
+    }.onFailure { PatcherLog.info(it) { "NexFusion Instagram: MobileConfigUnsafeContext hook skipped" } }
+
+    // 3. View hider in onResume
+    runCatching {
+        val activityClass = classLoader.loadClass("android.app.Activity")
+        for (method in activityClass.declaredMethods) {
+            if (method.name == "onResume" && method.parameterTypes.isEmpty()) {
+                XposedBridge.hookMethod(method, object : XC_MethodHook() {
+                    override fun afterHookedMethod(param: MethodHookParam) {
+                        val activity = param.thisObject as? Activity ?: return
+                        installMetaAiViewHider(activity)
+                    }
+                })
+            }
+        }
+        PatcherLog.info { "NexFusion Instagram: Hide Meta AI view hider installed" }
+    }.onFailure { PatcherLog.info(it) { "NexFusion Instagram: Hide Meta AI view hider skipped" } }
+}
+
 val InstagramPatches = arrayOf(
     HideAds,
     HideSuggestedPosts,
@@ -527,6 +754,7 @@ val InstagramPatches = arrayOf(
     StopStoryAutoAdvance,
     HideTypingStatus,
     HideStoryFollow,
+    HideFeedFollow,
     TurnOffDoubleTapLike,
     AllowScreenshots,
     BlockScreenshotDetection,
@@ -534,4 +762,7 @@ val InstagramPatches = arrayOf(
     OpenLinksExternally,
     DownloadMedia,
     DisableAnalytics,
+    DontSaveRecentSearches,
+    DontSendReelWatchHistory,
+    HideMetaAi,
 )

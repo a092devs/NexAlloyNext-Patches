@@ -20,6 +20,9 @@ object InstagramRequestFilter {
         STORY_SEEN,
         LIVE_VIEWER,
         ANALYTICS,
+        RECENT_SEARCHES,
+        REEL_WATCH_HISTORY,
+        META_AI,
     }
 
     private val enabledRules: MutableSet<Rule> = ConcurrentHashMap.newKeySet()
@@ -54,6 +57,16 @@ object InstagramRequestFilter {
                 path.contains("/discover/chaining") ||
                 path.contains("/suggested_users") ||
                 path.contains("/discover/suggested_businesses") -> Rule.SUGGESTED
+
+            path.contains("/fbsearch/register_recent_search_click/") -> Rule.RECENT_SEARCHES
+
+            path.contains("/clips/write_seen_state/") -> Rule.REEL_WATCH_HISTORY
+
+            path.contains("/meta_ai") ||
+                path.contains("/genai") ||
+                path.contains("/aistudio") ||
+                path.contains("/muse") ||
+                path.contains("/hatch") -> Rule.META_AI
 
             else -> null
         }

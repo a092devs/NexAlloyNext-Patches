@@ -453,3 +453,127 @@ val storySaveAction = findMethodDirect {
     check(matches.size == 1) { "expected 1 storySaveAction, found ${matches.size}" }
     matches.single()
 }
+
+/**
+ * The mutation that adds a search to search history.
+ * Takes GraphSearchQuery, ... and boolean skipSave.
+ */
+val searchTypeaheadAddRecentSearchMethod = findMethodDirect {
+    val matches = findMethod {
+        matcher { usingStrings(listOf("FB4ASearchTypeaheadAddRecentSearch"), StringMatchType.Equals) }
+    }.distinctBy { it.descriptor }
+    check(matches.size == 1) { "expected 1 FB4ASearchTypeaheadAddRecentSearch method, found ${matches.size}" }
+    matches.single()
+}
+
+/**
+ * The Falco analytics event factory: private instance method reading PrivacyContext
+ * and taking (Details, String eventName).
+ */
+val analyticsEventFactoryMethod = findMethodDirect {
+    val matches = findMethod {
+        matcher {
+            usingFields {
+                add { type = "com.facebook.logginginfra.falco.PrivacyContext" }
+            }
+            paramTypes = listOf(null, "java.lang.String")
+        }
+    }.distinctBy { it.descriptor }
+    check(matches.size == 1) { "expected 1 analytics event factory method, found ${matches.size}" }
+    matches.single()
+}
+
+/**
+ * The Reels seen-state batch flush method, sending FbShortsSeenStateMutation.
+ */
+val reelsSeenStateMethod = findMethodDirect {
+    val matches = findMethod {
+        matcher { usingStrings(listOf("FbShortsSeenStateMutation"), StringMatchType.Equals) }
+    }.filter { it.paramTypeNames.isEmpty() && it.returnTypeName == "void" }.distinctBy { it.descriptor }
+    check(matches.size == 1) { "expected 1 FbShortsSeenStateMutation flush method, found ${matches.size}" }
+    matches.single()
+}
+
+/**
+ * The Story composer's music clip length calculation method.
+ * Takes FbUserSession and composer state, holding 30000L and 15000L.
+ */
+val storyMusicClipLengthMethod = findMethodDirect {
+    val matches = findMethod {
+        matcher {
+            returnType = "int"
+            paramTypes = listOf("com.facebook.auth.usersession.FbUserSession", null)
+        }
+    }.filter { method ->
+        val instructions = runCatching { method.instructions }.getOrNull() ?: return@filter false
+        instructions.any { it.literal == 30000L } && instructions.any { it.literal == 15000L }
+    }.distinctBy { it.descriptor }
+    check(matches.size == 1) { "expected 1 story music clip length method, found ${matches.size}" }
+    matches.single()
+}
+
+/**
+ * Child getters of Bloks nodes on profiles.
+ * Returns child lists on classes implementing Bloks node operations (getBoolean, getId, etc.).
+ */
+val bloksChildGetters = findMethodListDirect {
+    findMethod {
+        matcher {
+            returnType = "java.util.List"
+            paramTypes = listOf("int")
+        }
+    }.filter { method ->
+        val owner = getClassData(method.declaredClassName) ?: return@filter false
+        val mNames = owner.methods.map { it.name }.toSet()
+        mNames.containsAll(listOf("getBoolean", "getId", "getInt", "getLong", "getString", "put"))
+    }.distinctBy { it.descriptor }
+}
+
+/**
+ * The Meta AI answer entity builder in search results.
+ */
+val searchMetaAiAnswerBuilder = findMethodDirect {
+    val matches = findMethod {
+        matcher {
+            usingStrings(listOf("meta_ai_answer_entities"), StringMatchType.Equals)
+            returnType = "void"
+        }
+    }.distinctBy { it.descriptor }
+    check(matches.size == 1) { "expected 1 meta_ai_answer_entities method, found ${matches.size}" }
+    matches.single()
+}
+
+/**
+ * GenAiDeepDivePillPlugin methods: Ask Meta AI question pills under feed posts.
+ */
+val genAiDeepDivePillPluginMethods = findMethodListDirect {
+    findMethod {
+        matcher {
+            declaredClass("com.facebook.feed.plugins.attachments.deepdivepill.impl.genai.GenAiDeepDivePillPlugin", StringMatchType.Equals, false)
+        }
+    }.distinctBy { it.descriptor }
+}
+
+/**
+ * GenAiDeepDiveCtaPlugin methods: GenAI CTA chips under photo posts.
+ */
+val genAiDeepDiveCtaPluginMethods = findMethodListDirect {
+    findMethod {
+        matcher {
+            declaredClass("com.facebook.feed.plugins.calltoaction.impl.genaideepdive.GenAiDeepDiveCtaPlugin", StringMatchType.Equals, false)
+        }
+    }.distinctBy { it.descriptor }
+}
+
+/**
+ * InlineCommentSummaryWithGenAIPlugin methods: GenAI comment summaries under posts.
+ */
+val inlineCommentSummaryPluginMethods = findMethodListDirect {
+    findMethod {
+        matcher {
+            declaredClass("com.facebook.feed.plugins.belowufifooter.impl.inlinecommentsummarywithgenai.InlineCommentSummaryWithGenAIPlugin", StringMatchType.Equals, false)
+        }
+    }.distinctBy { it.descriptor }
+}
+
+

@@ -7,6 +7,16 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.4.6
+
+- `NexFusion` 3.4.6:
+  * Meta AI Removal: Completely removed Meta AI integration across Facebook and Instagram:
+    - Facebook: Suppressed search Meta AI answer cards (`meta_ai_answer_entities`), Ask Meta AI question pills under feed posts (`GenAiDeepDivePillPlugin`), GenAI photo CTA chips (`GenAiDeepDiveCtaPlugin`), GenAI comment summaries (`InlineCommentSummaryWithGenAIPlugin`), and Meta AI feed unit edges.
+    - Instagram: Intercepted and blocked low-level MobileConfig flags (`0x81067100111e9fL`, `0x81040c0006109dL`, `0x81040a001b1093L`, `0x81168700017258L`, `0x8110c200115a92L`), redirected all Meta AI / GenAI network endpoints (`/meta_ai`, `/genai`, `/aistudio`, `/muse`, `/hatch`), and added runtime view hiders for all Meta AI buttons, search pills, rings, badges, and composer items.
+  * Facebook Hush Features: Ported `Don't save search history` (stops search history tracking and keeps visited profiles/pages out of search history via `FB4ASearchTypeaheadAddRecentSearch` and Falco privacy analytics suppression), `Don't send reel watch history` (suppresses `FbShortsSeenStateMutation` GraphQL batches), `Longer music on photo stories` (allows photo story music clips to play for up to 30 seconds instead of 15), and `Hide profile notes` (hides profile picture note bubbles) from Hushfacebook.
+  * Instagram Hush Features: Ported `Don't save recent searches` (intercepts `/fbsearch/register_recent_search_click/` via Tigon), `Don't send reel watch history` (intercepts `/clips/write_seen_state/` via Tigon), and `Hide Follow on feed posts` (removes Follow and Subscribe buttons from feed post headers) from HushGram.
+  * Compatibility Targets: Verified support for Facebook 584 (`com.facebook.katana-584.0.0.51.56`) and Instagram 452 (`com.instagram.android-452.1.0.53.64`).
+
 ## 3.4.5
 
 - `NexFusion` 3.4.5:

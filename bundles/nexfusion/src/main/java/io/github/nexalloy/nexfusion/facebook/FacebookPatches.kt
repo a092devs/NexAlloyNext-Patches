@@ -185,7 +185,7 @@ val HideSponsoredPosts = patch(
             val categoryName = runCatching {
                 categoryGetter.invoke(edge)?.toString()
             }.getOrNull() ?: return@before
-            if (categoryName == "SPONSORED" || categoryName == "PROMOTION") {
+            if (categoryName == "SPONSORED" || categoryName == "PROMOTION" || categoryName.contains("META_AI") || categoryName.contains("GEN_AI") || categoryName.contains("GENAI")) {
                 // A refused edge is an outcome the feed already handles: it logs "Edge not added
                 // to FUC" and carries on.
                 param.result = false
@@ -580,6 +580,228 @@ val HideFeedReels = patch(
     PatcherLog.info { "NexFusion: Facebook feed Reels filter installed" }
 }
 
+/**
+ * Stops Facebook from adding what you search for or pages you open from search to your search history.
+ * Ported and adapted from SysAdminDoc/Hushfacebook #196, #221.
+ */
+val DontSaveSearchHistory = patch(
+    name = "Don't save search history",
+    description = "Stops Facebook from adding what you search for or pages you open from search to your search history.",
+    use = false,
+) {
+    var count = 0
+    runCatching {
+        ::searchTypeaheadAddRecentSearchMethod.hookMethod {
+            before { param ->
+                val args = param.args
+                val boolIndices = args.indices.filter { args[it] is Boolean }
+                if (boolIndices.isNotEmpty()) {
+                    param.args[boolIndices.first()] = true
+                }
+            }
+        }
+        count++
+    }
+    runCatching {
+        ::analyticsEventFactoryMethod.hookMethod {
+            before { param ->
+                if (param.args.getOrNull(1) == "profile_engagement") {
+                    val field = param.thisObject.javaClass.declaredFields.firstOrNull {
+                        Modifier.isStatic(it.modifiers) &&
+                            (param.method as? Method)?.returnType?.isAssignableFrom(it.type) == true
+                    }
+                    field?.isAccessible = true
+                    param.result = field?.get(null)
+                }
+            }
+        }
+        count++
+    }
+    check(count > 0) { "Don't save search history: failed to install hooks" }
+    PatcherLog.info { "NexFusion: Facebook Don't save search history hooks installed ($count)" }
+}
+
+/**
+ * Stops Facebook from sending watched reels batches to GraphQL.
+ * Ported and adapted from SysAdminDoc/Hushfacebook (FbShortsSeenStateMutation).
+ */
+val DontSendReelWatchHistory = patch(
+    name = "Don't send reel watch history",
+    description = "Stops Facebook from sending the reels you watched to its servers, keeping your watch history private.",
+    use = false,
+) {
+    ::reelsSeenStateMethod.hookMethod {
+        before { param ->
+            param.result = null
+        }
+    }
+    PatcherLog.info { "NexFusion: Facebook Don't send reel watch history hook installed" }
+}
+
+/**
+ * Allows a song on a photo story to play for up to 30 seconds instead of 15.
+ * Ported and adapted from SysAdminDoc/Hushfacebook #156.
+ */
+val LongerStoryMusic = patch(
+    name = "Longer music on photo stories",
+    description = "Allows songs added to photo stories to play for up to 30 seconds instead of 15.",
+    use = false,
+) {
+    ::storyMusicClipLengthMethod.hookMethod {
+        after { param ->
+            val length = param.result as? Int ?: return@after
+            if (length in 1..29999) {
+                param.result = 30000
+            }
+        }
+    }
+    PatcherLog.info { "NexFusion: Facebook Longer music on photo stories hook installed" }
+}
+
+private val bloksAttributesFields = java.util.concurrent.ConcurrentHashMap<Class<*>, java.lang.reflect.Field?>()
+private val bloksNoteCache = java.util.Collections.synchronizedMap(java.util.WeakHashMap<Any, Boolean>())
+private val NOTE_MARKERS = listOf(
+    "com.bloks.www.bloks.profile.note.",
+    "com.bloks.www.bloks.profile.async.fetch.note_bubble",
+)
+
+private fun isBloksNoteNode(node: Any?): Boolean {
+    if (node == null) return false
+    bloksNoteCache[node]?.let { return it }
+    val field = bloksAttributesFields.computeIfAbsent(node.javaClass) { clazz ->
+        var curr: Class<*>? = clazz
+        while (curr != null && curr != Any::class.java) {
+            for (f in curr.declaredFields) {
+                if (android.util.SparseArray::class.java.isAssignableFrom(f.type) && !Modifier.isStatic(f.modifiers)) {
+                    f.isAccessible = true
+                    return@computeIfAbsent f
+                }
+            }
+            curr = curr.superclass
+        }
+        null
+    } ?: return false
+
+    val sparseArray = runCatching { field.get(node) as? android.util.SparseArray<*> }.getOrNull() ?: return false
+    var isNote = false
+    for (i in 0 until sparseArray.size()) {
+        val value = sparseArray.valueAt(i)
+        if (value is String) {
+            if (NOTE_MARKERS.any { value.contains(it) }) {
+                isNote = true
+                break
+            }
+        }
+    }
+    bloksNoteCache[node] = isNote
+    return isNote
+}
+
+/**
+ * Hides the note bubble on profile pictures.
+ * Ported and adapted from SysAdminDoc/Hushfacebook #195.
+ */
+val HideProfileNotes = patch(
+    name = "Hide profile notes",
+    description = "Hides the note bubble on profile pictures, including the prompt on your own profile.",
+    use = false,
+) {
+    var count = 0
+    for (dexMethod in ::bloksChildGetters.dexMethodList) {
+        dexMethod.hookMethod {
+            after { param ->
+                val list = param.result as? List<*> ?: return@after
+                if (list.isEmpty()) return@after
+                if (list.any { isBloksNoteNode(it) }) {
+                    param.result = list.filterNot { isBloksNoteNode(it) }
+                }
+            }
+        }
+        count++
+    }
+    check(count > 0) { "Hide profile notes: no Bloks child getters found" }
+    PatcherLog.info { "NexFusion: Facebook Hide profile notes installed on $count getters" }
+}
+
+/**
+ * Removes Meta AI from Facebook: search Meta AI answer cards, Ask Meta AI question
+ * chips under posts, GenAI deep dive CTAs, and GenAI comment summaries.
+ * Ported and adapted from SysAdminDoc/Hushfacebook (GPL-3.0).
+ */
+val HideMetaAi = patch(
+    name = "Hide Meta AI",
+    description = "Removes Meta AI answer cards from search, Ask Meta AI question chips and pills under feed posts, and GenAI comment summaries.",
+    use = true,
+) {
+    // 1. Search Meta AI answer builder
+    runCatching {
+        ::searchMetaAiAnswerBuilder.hookMethod {
+            before { param -> param.result = null }
+        }
+        PatcherLog.info { "NexFusion: Facebook search Meta AI answer builder hooked" }
+    }.onFailure { PatcherLog.info(it) { "NexFusion: Facebook search Meta AI answer builder skipped" } }
+
+    // 2. GenAiDeepDivePillPlugin (Ask Meta AI question pills under feed posts)
+    runCatching {
+        var count = 0
+        for (dexMethod in ::genAiDeepDivePillPluginMethods.dexMethodList) {
+            val method = runCatching { dexMethod.toMethod() }.getOrNull() ?: continue
+            if (method.name == "<clinit>" || method.name == "<init>") continue
+            dexMethod.hookMethod {
+                before { param ->
+                    if (method.returnType == java.lang.Boolean.TYPE) {
+                        param.result = false
+                    } else if (method.returnType != java.lang.Void.TYPE && !method.returnType.isPrimitive) {
+                        param.result = null
+                    }
+                }
+            }
+            count++
+        }
+        PatcherLog.info { "NexFusion: Facebook GenAiDeepDivePillPlugin hooked on $count methods" }
+    }.onFailure { PatcherLog.info(it) { "NexFusion: Facebook GenAiDeepDivePillPlugin skipped" } }
+
+    // 3. GenAiDeepDiveCtaPlugin (GenAI CTA chips under photo posts)
+    runCatching {
+        var count = 0
+        for (dexMethod in ::genAiDeepDiveCtaPluginMethods.dexMethodList) {
+            val method = runCatching { dexMethod.toMethod() }.getOrNull() ?: continue
+            if (method.name == "<clinit>" || method.name == "<init>") continue
+            dexMethod.hookMethod {
+                before { param ->
+                    if (method.returnType == java.lang.Boolean.TYPE) {
+                        param.result = false
+                    } else if (method.returnType != java.lang.Void.TYPE && !method.returnType.isPrimitive) {
+                        param.result = null
+                    }
+                }
+            }
+            count++
+        }
+        PatcherLog.info { "NexFusion: Facebook GenAiDeepDiveCtaPlugin hooked on $count methods" }
+    }.onFailure { PatcherLog.info(it) { "NexFusion: Facebook GenAiDeepDiveCtaPlugin skipped" } }
+
+    // 4. Inline comment summary plugin
+    runCatching {
+        var count = 0
+        for (dexMethod in ::inlineCommentSummaryPluginMethods.dexMethodList) {
+            val method = runCatching { dexMethod.toMethod() }.getOrNull() ?: continue
+            if (method.name == "<clinit>" || method.name == "<init>") continue
+            dexMethod.hookMethod {
+                before { param ->
+                    if (method.returnType == java.lang.Boolean.TYPE) {
+                        param.result = false
+                    } else if (method.returnType != java.lang.Void.TYPE && !method.returnType.isPrimitive) {
+                        param.result = null
+                    }
+                }
+            }
+            count++
+        }
+        PatcherLog.info { "NexFusion: Facebook inline comment summary plugin hooked on $count methods" }
+    }.onFailure { PatcherLog.info(it) { "NexFusion: Facebook inline comment summary plugin skipped" } }
+}
+
 val FacebookPatches = arrayOf(
     AllowScreenshots,
     BlockScreenshotDetection,
@@ -590,6 +812,11 @@ val FacebookPatches = arrayOf(
     BlockTelemetry,
     OpenLinksExternally,
     DownloadFacebookMedia,
+    DontSaveSearchHistory,
+    DontSendReelWatchHistory,
+    LongerStoryMusic,
+    HideProfileNotes,
+    HideMetaAi,
 )
 // "Hide marketplace ads" is not registered: its upstream implementation resolves tens of anchors
 // and is not portable yet. It was previously a log-only stub, which reported success without
