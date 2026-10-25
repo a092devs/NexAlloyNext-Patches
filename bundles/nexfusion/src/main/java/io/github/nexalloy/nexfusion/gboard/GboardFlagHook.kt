@@ -56,6 +56,17 @@ private val KNOWN_FLAG_CLASS_NAMES = listOf(
     "acps", "obw", "ntk", "nuw", "lhf", "lhg", "kgj", "acta", "actc", "jzp", "jzq"
 )
 
+private val SCREENSHOT_PREF_KEYS = setOf(
+    "enable_screenshot_in_clipboard",
+    "clipboard_screenshot_enabled_at_least_once",
+    "should_auto_enable_enable_screenshot_in_clipboard",
+    "enable_clipboard_image_suggestion",
+    "enable_screenshot_chip",
+    "enable_clipboard_recent_screenshot",
+    "pref_key_enable_clipboard_suggestion",
+    "enable_auto_paste_chips"
+)
+
 private val overrides = LinkedHashMap<String, FlagOverride>()
 private val nameFields = ConcurrentHashMap<Class<*>, Field>()
 private val nameMethods = ConcurrentHashMap<Class<*>, java.lang.reflect.Method>()
@@ -134,6 +145,10 @@ fun PatchExecutor.enableGboardPreferences(
                 object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         val key = param.args[0] as? String ?: return
+                        if (key in SCREENSHOT_PREF_KEYS && dynamicBooleanPrefOverrides.containsKey(key)) {
+                            param.result = true
+                            return
+                        }
                         val sp = param.thisObject as? android.content.SharedPreferences
                         if (sp != null && sp.contains(key)) return
                         val override = dynamicBooleanPrefOverrides[key] ?: return
@@ -165,13 +180,24 @@ fun PatchExecutor.enableGboardPreferences(
  * in SharedPreferences storage and runtime lookups.
  */
 fun PatchExecutor.enableGboardScreenshotPreferences() {
-    enableGboardPreferences(
-        booleans = mapOf(
-            "enable_screenshot_in_clipboard" to true,
-            "clipboard_screenshot_enabled_at_least_once" to true,
-            "pref_key_enable_clipboard_suggestion" to true,
-        )
+    val prefs = mapOf(
+        "enable_screenshot_in_clipboard" to true,
+        "clipboard_screenshot_enabled_at_least_once" to true,
+        "should_auto_enable_enable_screenshot_in_clipboard" to true,
+        "enable_clipboard_image_suggestion" to true,
+        "enable_screenshot_chip" to true,
+        "enable_clipboard_recent_screenshot" to true,
+        "pref_key_enable_clipboard_suggestion" to true,
+        "enable_auto_paste_chips" to true,
     )
+    enableGboardPreferences(booleans = prefs)
+    // Force to true on disk directly so Gboard's provider and process see it immediately
+    runCatching {
+        appContext.getSharedPreferences("${appContext.packageName}_preferences", android.content.Context.MODE_PRIVATE)
+            .edit()
+            .apply { prefs.forEach { (k, v) -> putBoolean(k, v) } }
+            .apply()
+    }
 }
 
 /**
@@ -186,10 +212,9 @@ fun PatchExecutor.enableGboardRoundedKeysPreference() {
 
 /**
  * Ensures Gboard's AI Writing Tools and Jarvis consent preferences are enabled in SharedPreferences
- * storage and runtime lookups, placing jarvis in the primary access points toolbar.
+ * storage and runtime lookups without clobbering user-customized access points or suggestion strip order.
  */
 fun PatchExecutor.enableGboardWritingToolsPreference() {
-    val order = "jarvis;clipboard;translate;settings;gif_search;sticker;search;one_handed;textediting;floating_keyboard"
     enableGboardPreferences(
         booleans = mapOf(
             "pref_key_writing_tools_opt_in" to true,
@@ -197,18 +222,12 @@ fun PatchExecutor.enableGboardWritingToolsPreference() {
             "pref_key_writing_tools_screen_context_opt_in_v1" to true,
             "pref_key_writing_tools_enable_pi_override" to true,
             "pref_key_stop_dictation_after_sending_writing_tools_v2_prompts" to false,
-            "has_reorganized_access_points_order" to true,
             "jarvis_consent_history" to true,
             "enable_jarvis" to true,
             "jarvis_enabled" to true,
         ),
         strings = mapOf(
             "jarvis_consent_history" to "Granted (Form)",
-            "pref_key_access_points_showing_order" to order,
-            "access_points_showing_order" to order,
-            "config_access_points_order" to order,
-            "access_points_order" to order,
-            "access_points_order_for_new_user_on_phone" to order,
         )
     )
 }
