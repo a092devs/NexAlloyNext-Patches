@@ -59,15 +59,18 @@ class TwitterPatchesTest {
     fun `promoted-item probes mirror the upstream test sites`() {
         assertEquals(
             listOf(
+                "com.x.models.timelines.items.l1",
+                "com.x.models.timelines.items.r1",
+                "com.x.models.timelines.items.f2",
                 "com.x.models.timelines.items.j1",
+                "com.x.models.timelines.items.p1",
                 "com.x.models.timelines.items.m0",
                 "com.x.models.timelines.items.y1",
-                "com.x.models.timelines.items.p1",
                 "com.x.models.timelines.items.b2",
             ),
             PROMOTED_ITEM_PROBES.map { it.modelClass },
         )
-        assertEquals(listOf("e", "a", "a", "j", "h"), PROMOTED_ITEM_PROBES.map { it.field })
-        assertEquals(listOf(null, "a", "b", null, null), PROMOTED_ITEM_PROBES.map { it.call })
+        assertEquals(listOf("e", "j", "h", "e", "j", "a", "a", "h"), PROMOTED_ITEM_PROBES.map { it.field })
+        assertEquals(listOf(null, null, null, null, null, "a", "b", null), PROMOTED_ITEM_PROBES.map { it.call })
     }
 }

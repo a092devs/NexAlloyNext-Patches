@@ -64,6 +64,7 @@ val GboardBluetoothMicrophone = patch(
 val GboardCloseProactiveSuggestions = patch(
     name = "Close proactive suggestions",
     description = "Adds the access point that closes the proactive suggestions row.",
+    use = false,
 ) {
     gboardFlagOverrides("enable_close_proactive_suggestions_access_point" to FlagOverride.forceBoolean())
 }
@@ -301,14 +302,18 @@ val GboardScreenshotChips = patch(
     description = "Shows floating suggestion chips for recently captured screenshots and clipboard images.",
 ) {
     gboardFlagOverrides(
-        "enable_clipboard_image_suggestion" to FlagOverride.forceBoolean(),
-        "enable_screenshot_notification_flow" to FlagOverride.forceBoolean(),
-        "enable_screenshot_chip" to FlagOverride.forceBoolean(),
-        "enable_clipboard_recent_screenshot" to FlagOverride.forceBoolean(),
-        "clipboard_screenshot_enabled_at_least_once" to FlagOverride.forceBoolean(),
-        "enable_extended_clipboard_history" to FlagOverride.forceBoolean(),
-        "enable_system_clipboard_direct_paste_for_quick_paste" to FlagOverride.forceBoolean(),
+        "enable_screenshot_in_clipboard" to FlagOverride.forceTrue(),
+        "enable_clipboard_image_suggestion" to FlagOverride.forceTrue(),
+        "enable_screenshot_notification_flow" to FlagOverride.forceTrue(),
+        "enable_screenshot_chip" to FlagOverride.forceTrue(),
+        "enable_clipboard_recent_screenshot" to FlagOverride.forceTrue(),
+        "clipboard_screenshot_enabled_at_least_once" to FlagOverride.forceTrue(),
+        "enable_extended_clipboard_history" to FlagOverride.forceTrue(),
+        "enable_system_clipboard_direct_paste_for_quick_paste" to FlagOverride.forceTrue(),
+        "writing_tools_v2_enable_screenshot_context" to FlagOverride.forceTrue(),
+        "enable_auto_paste_chips" to FlagOverride.forceTrue(),
     )
+    enableGboardScreenshotPreferences()
 }
 
 val GboardEmojiPaletteV2 = patch(

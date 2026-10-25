@@ -78,16 +78,38 @@ fun PatchExecutor.enableGboardPreferences(
                 android.content.Context.MODE_PRIVATE
             )
             val editor = latinPrefs.edit()
-            booleans.forEach { (k, v) -> editor.putBoolean(k, v) }
-            strings.forEach { (k, v) -> editor.putString(k, v) }
-            editor.apply()
+            var modified = false
+            booleans.forEach { (k, v) ->
+                if (!latinPrefs.contains(k)) {
+                    editor.putBoolean(k, v)
+                    modified = true
+                }
+            }
+            strings.forEach { (k, v) ->
+                if (!latinPrefs.contains(k)) {
+                    editor.putString(k, v)
+                    modified = true
+                }
+            }
+            if (modified) editor.apply()
         }
         runCatching {
             val defaultPrefs = android.preference.PreferenceManager.getDefaultSharedPreferences(ctx)
             val editor = defaultPrefs.edit()
-            booleans.forEach { (k, v) -> editor.putBoolean(k, v) }
-            strings.forEach { (k, v) -> editor.putString(k, v) }
-            editor.apply()
+            var modified = false
+            booleans.forEach { (k, v) ->
+                if (!defaultPrefs.contains(k)) {
+                    editor.putBoolean(k, v)
+                    modified = true
+                }
+            }
+            strings.forEach { (k, v) ->
+                if (!defaultPrefs.contains(k)) {
+                    editor.putString(k, v)
+                    modified = true
+                }
+            }
+            if (modified) editor.apply()
         }
     }
 
@@ -112,6 +134,8 @@ fun PatchExecutor.enableGboardPreferences(
                 object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         val key = param.args[0] as? String ?: return
+                        val sp = param.thisObject as? android.content.SharedPreferences
+                        if (sp != null && sp.contains(key)) return
                         val override = dynamicBooleanPrefOverrides[key] ?: return
                         param.result = override
                     }
@@ -125,6 +149,8 @@ fun PatchExecutor.enableGboardPreferences(
                 object : XC_MethodHook() {
                     override fun beforeHookedMethod(param: MethodHookParam) {
                         val key = param.args[0] as? String ?: return
+                        val sp = param.thisObject as? android.content.SharedPreferences
+                        if (sp != null && sp.contains(key)) return
                         val override = dynamicStringPrefOverrides[key] ?: return
                         param.result = override
                     }
@@ -132,6 +158,20 @@ fun PatchExecutor.enableGboardPreferences(
             )
         }
     }
+}
+
+/**
+ * Ensures Gboard's screenshot suggestions and clipboard image preview preferences are enabled
+ * in SharedPreferences storage and runtime lookups.
+ */
+fun PatchExecutor.enableGboardScreenshotPreferences() {
+    enableGboardPreferences(
+        booleans = mapOf(
+            "enable_screenshot_in_clipboard" to true,
+            "clipboard_screenshot_enabled_at_least_once" to true,
+            "pref_key_enable_clipboard_suggestion" to true,
+        )
+    )
 }
 
 /**

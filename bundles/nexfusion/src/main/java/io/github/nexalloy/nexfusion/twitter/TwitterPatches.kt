@@ -108,6 +108,11 @@ private const val PRESENTER_FUNNEL_DESCRIPTOR =
     "Lcom/x/urt/b;->a:(ILcom/x/models/timelines/items/o0;Lcom/x/navigation/in;" +
         "Lcom/x/repositories/urt/r1;Lcom/x/urt/x0;)Lcom/x/presenter/a;"
 
+/** X 12.37.2's unified presenter funnel descriptor. */
+private const val PRESENTER_FUNNEL_DESCRIPTOR_12_37 =
+    "Lcom/x/urt/b;->a:(ILcom/x/models/timelines/items/o0;Lcom/x/navigation/go;" +
+        "Lcom/x/repositories/urt/u1;Lcom/x/urt/t0;)Lcom/x/presenter/a;"
+
 /** The Quick Promote tray composable the upstream patch drops. */
 private const val QUICK_PROMOTE_DESCRIPTOR =
     "Lcom/x/urt/items/post/quickpromote/b;->a:(Lkotlin/jvm/functions/Function0;" +
@@ -123,7 +128,7 @@ private fun IHook.installTwitterAdSuppressor() {
     if (missing.isNotEmpty()) {
         PatcherLog.info { "NexFusion: X promoted-item probes not found in this build: ${missing.joinToString()}" }
     }
-    hookCatching(PRESENTER_FUNNEL_DESCRIPTOR) {
+    val adSuppressorBlock: HookDsl<IHookCallback>.() -> Unit = {
         before = { param ->
             val item = param.args.getOrNull(1)
             if (item != null && filter.isPromoted(item)) {
@@ -132,7 +137,19 @@ private fun IHook.installTwitterAdSuppressor() {
             }
         }
     }
+    val hookedFunnel = hookMethodsIfExists(
+        "com.x.urt.b", "a", "presenter funnel",
+        shape = { it.size == 5 && it[0] == java.lang.Integer.TYPE && it[1].name.endsWith(".items.o0") },
+        block = adSuppressorBlock,
+    )
+    if (hookedFunnel == 0) {
+        hookCatching(PRESENTER_FUNNEL_DESCRIPTOR, adSuppressorBlock)
+        hookCatching(PRESENTER_FUNNEL_DESCRIPTOR_12_37, adSuppressorBlock)
+    }
     hookCatching(QUICK_PROMOTE_DESCRIPTOR) {
+        before = { param -> param.result = null }
+    }
+    hookMethodsIfExists("com.x.urt.items.post.quickpromote.b", "a", "quick promote tray") {
         before = { param -> param.result = null }
     }
     hookCatching(MOBILE_ADS_INIT_DESCRIPTOR) {
@@ -143,36 +160,64 @@ private fun IHook.installTwitterAdSuppressor() {
 // ---- Unlock Video Downloads ---------------------------------------------------------------------
 
 private fun IHook.installVideoDownloadUnlock() {
-    // Upstream forces the Premium check (com.x.subscriptions.q.g) to true inside the three download
-    // call sites; the gate marks those methods, so the override only applies while a download
-    // surface builds.
+    // Upstream forces the Premium check to true inside download call sites;
+    // the gate marks those methods, so the override only applies while a download surface builds.
     val siteBlock: HookDsl<IHookCallback>.() -> Unit = {
         before = { TwitterDownloadGate.enterSite() }
         after = { TwitterDownloadGate.exitSite() }
     }
     hookMethodsIfExists(
         "com.x.media.n", "b", "media viewer download",
-        shape = { it.size == 1 && it[0].name == "com.x.models.a5" }, block = siteBlock,
+        shape = { it.size == 1 && it[0].name.startsWith("com.x.models.") }, block = siteBlock,
     )
     hookMethodsIfExists(
         "com.x.urt.items.post.k5", "invoke", "post menu download",
         shape = { it.isEmpty() }, block = siteBlock,
     )
+    // 12.37+: video tab download method 'f'
+    hookMethodsIfExists(
+        "com.x.video.tab.d0", "f", "video tab download 12.37+",
+        shape = { it.size == 1 && it[0].name.startsWith("com.x.video.tab.") }, block = siteBlock,
+    )
+    // 12.35: video tab download method 'e'
     hookMethodsIfExists(
         "com.x.video.tab.d0", "e", "video tab download",
-        shape = { it.size == 1 && it[0].name == "com.x.video.tab.f5" }, block = siteBlock,
+        shape = { it.size == 1 && it[0].name.startsWith("com.x.video.tab.") }, block = siteBlock,
+    )
+    hookMethodsIfExists(
+        "com.x.media.download.d", "c", "media download dispatch",
+        block = siteBlock,
     )
 
+    // X 12.35 subscription check
     hookCatching("Lcom/x/subscriptions/q;->g:()Z") {
         after = { param ->
             if (param.result == false && TwitterDownloadGate.isInsideSite()) param.result = true
         }
     }
+    // X 12.37+ subscription check (overriding boolean accessors while inside download flow)
+    for (methodName in listOf("c", "f", "h", "i", "l", "m", "n", "o", "p")) {
+        hookMethodsIfExists(
+            "com.x.subscriptions.r",
+            methodName,
+            "subscriptions 12.37+ premium check ($methodName)",
+            shape = { it.isEmpty() },
+        ) {
+            after = { param ->
+                if (param.result == false && TwitterDownloadGate.isInsideSite()) param.result = true
+            }
+        }
+    }
 
     // The media models gate the save action on their own isDownloadable flag; upstream forces it on
     // in every constructor return path.
-    installDownloadableFlag("com.x.models.w4", "j", "video")
-    installDownloadableFlag("com.x.models.q4", "g", "GIF")
+    // X 12.37+:
+    installDownloadableFlag("com.x.models.v4", "j", "video")
+    installDownloadableFlag("com.x.models.p4", "g", "GIF")
+    installDownloadableFlag("com.x.models.s4", "g", "video meta")
+    // X 12.35:
+    installDownloadableFlag("com.x.models.w4", "j", "video (legacy)")
+    installDownloadableFlag("com.x.models.q4", "g", "GIF (legacy)")
 }
 
 private fun IHook.installDownloadableFlag(className: String, fieldName: String, label: String) {
@@ -212,6 +257,9 @@ private fun IHook.installUpdateScreenBlock() {
         }
     }
     hookCatching(IN_APP_UPDATE_DESCRIPTOR) {
+        before = { param -> param.result = null }
+    }
+    hookMethodsIfExists("com.x.android.appupdate.l", "a", "in-app update 12.37+") {
         before = { param -> param.result = null }
     }
 }

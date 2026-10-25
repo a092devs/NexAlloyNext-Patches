@@ -12,20 +12,29 @@ import io.github.nexalloy.PatcherLog
 /** One promoted-item probe, mirroring a branch of the upstream adItemTestSmali test. */
 internal data class AdProbe(val modelClass: String, val field: String, val call: String? = null)
 
-/** The five promoted shapes the upstream Remove Ads preamble tests, in upstream order. */
+/** The promoted shapes the Remove Ads preamble tests across X versions. */
 internal val PROMOTED_ITEM_PROBES = listOf(
-    AdProbe("com.x.models.timelines.items.j1", "e"), // promoted post marker
+    // X 12.37+
+    AdProbe("com.x.models.timelines.items.l1", "e"), // promoted post marker
+    AdProbe("com.x.models.timelines.items.r1", "j"), // promoted rtb marker
+    AdProbe("com.x.models.timelines.items.f2", "h"), // promoted item variant
+    // X 12.35 - 12.36
+    AdProbe("com.x.models.timelines.items.j1", "e"), // legacy promoted post marker
+    AdProbe("com.x.models.timelines.items.p1", "j"), // legacy promoted rtb marker
+    // Shared across versions
     AdProbe("com.x.models.timelines.items.m0", "a", call = "a"), // event item verdict
     AdProbe("com.x.models.timelines.items.y1", "a", call = "b"), // promoted trend verdict
-    AdProbe("com.x.models.timelines.items.p1", "j"), // promoted rtb marker
     AdProbe("com.x.models.timelines.items.b2", "h"), // promoted user marker
 )
 
 /** Entry-id substring the upstream test checks after the model-shape probes. */
 internal const val PROMOTED_ENTRY_ID = "promoted"
 
-/** X 12.35's no-op presenter singleton (implements com.x.presenter.a, renders nothing). */
-private const val EMPTY_PRESENTER_CLASS = "com.x.urt.f0"
+/** X no-op presenter singletons across versions (implements com.x.presenter.a, renders nothing). */
+private val EMPTY_PRESENTER_CLASSES = listOf(
+    "com.x.urt.b0", // X 12.37+
+    "com.x.urt.f0", // X 12.35 - 12.36
+)
 
 internal class TwitterAdFilter(private val classLoader: ClassLoader) {
     private val models = HashMap<String, Class<*>?>()
@@ -72,17 +81,29 @@ internal class TwitterAdFilter(private val classLoader: ClassLoader) {
     fun emptyPresenter(): Any? {
         if (!emptyPresenterResolved) {
             emptyPresenterResolved = true
-            emptyPresenter = runCatching {
-                XposedHelpers.getStaticObjectField(classLoader.loadClass(EMPTY_PRESENTER_CLASS), "a")
-            }.onFailure {
-                PatcherLog.info(it) { "NexFusion: X empty presenter not found; suppressed items stay visible" }
-            }.getOrNull()
+            for (clsName in EMPTY_PRESENTER_CLASSES) {
+                emptyPresenter = runCatching {
+                    val cls = classLoader.loadClass(clsName)
+                    XposedHelpers.getStaticObjectField(cls, "a")
+                }.getOrNull()
+                if (emptyPresenter != null) {
+                    PatcherLog.info { "NexFusion: resolved X empty presenter via $clsName.a" }
+                    break
+                }
+            }
+            if (emptyPresenter == null) {
+                PatcherLog.info { "NexFusion: X empty presenter not found; suppressed items stay visible" }
+            }
         }
         return emptyPresenter
     }
 
     /** Probe classes missing from this build, for one install-time log line. */
     @Synchronized
-    fun missingProbeClasses(): List<String> =
-        PROMOTED_ITEM_PROBES.map { it.modelClass }.distinct().filter { model(it) == null }
+    fun missingProbeClasses(): List<String> {
+        val present = PROMOTED_ITEM_PROBES.filter { model(it.modelClass) != null }
+        // If at least one active probe set is matched, we're good
+        if (present.isNotEmpty()) return emptyList()
+        return PROMOTED_ITEM_PROBES.map { it.modelClass }.distinct()
+    }
 }

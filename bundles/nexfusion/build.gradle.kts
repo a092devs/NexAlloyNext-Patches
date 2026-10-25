@@ -19,11 +19,11 @@ android {
 
     defaultConfig {
         applicationId = "io.github.nexalloy.patches.nexfusion"
-        versionCode = 46
+        versionCode = 47
         val patchVersion = Properties().apply {
             rootProject.file("morphe-patches/gradle.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
         }["version"]
-        versionName = "3.4.10"
+        versionName = "3.5.0"
         buildConfigField("String", "PATCH_VERSION", "\"$patchVersion\"")
     }
     sourceSets {
@@ -53,8 +53,8 @@ nexalloyBundle {
     author = "a092devs"
     descriptionResource = "bundle_description"
     resourcePackageId = 0x4e
-    compatibilitySeries = "3.4"
-    minManagerVersion = "3.4.0"
+    compatibilitySeries = "3.5"
+    minManagerVersion = "3.5.0"
 }
 
 // Exclude Morphe-specific files that depend on protobuf/innertube/javascriptengine

@@ -7,6 +7,19 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.5.0
+
+- `NexFusion` 3.5.0:
+  * X (Twitter) Compatibility: Added official support for X `12.37.2-prod.01`.
+  * Dynamic Ad Suppression: Updated timeline presenter funnel matching with resilient reflection to prevent breakage across obfuscated navigation parameter classes.
+  * Empty Presenter: Added support for `com.x.urt.b0.a` with fallback to `com.x.urt.f0.a`.
+  * Promoted Item Probes: Added promoted post (`l1.e`), promoted RTB (`r1.j`), and item variant (`f2.h`) probes alongside legacy models.
+  * Video Downloads: Added Premium check hooks for `com.x.subscriptions.r`, `isDownloadable` overrides for video models `v4.j`, `p4.g`, `s4.g`, and updated video tab download handler.
+  * Update Blocker: Added in-app update prompt blocker for `com.x.android.appupdate.l.a`. 
+  * Bundle Compatibility: Updated compatibility series and minManagerVersion to 3.5 to align with NexAlloyNext 3.5.0 manager.
+  * Gboard Screenshot Chips: Enabled `enable_screenshot_in_clipboard`, `enable_auto_paste_chips`, and `writing_tools_v2_enable_screenshot_context` with forced overrides so recent screenshots reliably show in the suggestion strip.
+  * Gboard Suggestion Strip & Preferences: SharedPreferences hook now preserves existing user preferences instead of overwriting them on startup, preventing preference resets on force-stop. Proactive suggestion strip close button disabled by default to keep the suggestion row persistently accessible.
+
 ## 3.4.10
 
 - `NexFusion` 3.4.10:
