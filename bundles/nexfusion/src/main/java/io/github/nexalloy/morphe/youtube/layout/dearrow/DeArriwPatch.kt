@@ -4,6 +4,9 @@ import app.morphe.extension.youtube.patches.dearrow.DeArrowPatch
 import app.morphe.extension.youtube.settings.preference.DeArrowAboutPreference
 import io.github.nexalloy.morphe.shared.misc.settings.preference.ListPreference
 import io.github.nexalloy.morphe.shared.misc.settings.preference.NonInteractivePreference
+import io.github.nexalloy.morphe.shared.misc.settings.preference.noTitleUnsortedPreferenceCategory
+import io.github.nexalloy.morphe.shared.misc.settings.preference.PreferenceCategory
+import io.github.nexalloy.morphe.shared.misc.settings.preference.PreferenceScreenPreference.Sorting
 import io.github.nexalloy.morphe.shared.misc.settings.preference.SwitchPreference
 import io.github.nexalloy.morphe.shared.misc.settings.preference.TextPreference
 import io.github.nexalloy.morphe.youtube.misc.imageurlhook.addImageUrlErrorCallbackHook
@@ -28,43 +31,62 @@ val deArrowPatch = patch(
     val entries = "morphe_dearrow_thumbnail_options_entries"
     val values = "morphe_dearrow_thumbnail_options_entry_values"
     PreferenceScreen.DEARROW.addPreferences(
-//        SwitchPreference("morphe_dearrow_titles", summary = true),
-//        SwitchPreference("morphe_dearrow_titles_icon", summary = true),
-        ListPreference(
-            key = "morphe_dearrow_thumbnail_home",
-            entriesKey = entries,
-            entryValuesKey = values
+        PreferenceCategory(
+            key = "morphe_dearrow_thumbnails_category",
+            titleKey = "morphe_dearrow_thumbnails_title",
+            sorting = Sorting.UNSORTED,
+            preferences = setOf(
+                ListPreference(
+                    key = "morphe_dearrow_thumbnail_home",
+                    titleKey = "morphe_dearrow_titles_home_title",
+                    entriesKey = entries,
+                    entryValuesKey = values
+                ),
+                ListPreference(
+                    key = "morphe_dearrow_thumbnail_subscription",
+                    titleKey = "morphe_dearrow_titles_subscription_title",
+                    entriesKey = entries,
+                    entryValuesKey = values
+                ),
+                ListPreference(
+                    key = "morphe_dearrow_thumbnail_library",
+                    titleKey = "morphe_dearrow_titles_library_title",
+                    entriesKey = entries,
+                    entryValuesKey = values
+                ),
+                ListPreference(
+                    key = "morphe_dearrow_thumbnail_player",
+                    titleKey = "morphe_dearrow_titles_player_title",
+                    entriesKey = entries,
+                    entryValuesKey = values
+                ),
+                ListPreference(
+                    key = "morphe_dearrow_thumbnail_search",
+                    titleKey = "morphe_dearrow_titles_search_title",
+                    entriesKey = entries,
+                    entryValuesKey = values
+                ),
+                NonInteractivePreference("morphe_dearrow_thumbnail_stills_about"),
+                ListPreference("morphe_dearrow_thumbnail_stills_time"),
+            )
         ),
-        ListPreference(
-            key = "morphe_dearrow_thumbnail_subscription",
-            entriesKey = entries,
-            entryValuesKey = values
+        PreferenceCategory(
+            key = "morphe_dearrow_general_category",
+            titleKey = "morphe_settings_screen_04_general_title",
+            sorting = Sorting.UNSORTED,
+            preferences = setOf(
+                TextPreference("morphe_dearrow_api_url"),
+                SwitchPreference("morphe_dearrow_connection_toast", summary = true),
+            )
         ),
-        ListPreference(
-            key = "morphe_dearrow_thumbnail_library",
-            entriesKey = entries,
-            entryValuesKey = values
-        ),
-        ListPreference(
-            key = "morphe_dearrow_thumbnail_player",
-            entriesKey = entries,
-            entryValuesKey = values
-        ),
-        ListPreference(
-            key = "morphe_dearrow_thumbnail_search",
-            entriesKey = entries,
-            entryValuesKey = values
-        ),
-        NonInteractivePreference(
-            "morphe_dearrow_about",
-            // Custom about preference with link to the DeArrow website.
-            tag = DeArrowAboutPreference::class.java,
-            selectable = true,
-        ),
-        SwitchPreference("morphe_dearrow_connection_toast", summary = true),
-        TextPreference("morphe_dearrow_api_url"),
-        NonInteractivePreference("morphe_dearrow_thumbnail_stills_about"),
-        ListPreference("morphe_dearrow_thumbnail_stills_time"),
+        noTitleUnsortedPreferenceCategory(
+            NonInteractivePreference(
+                key = "morphe_dearrow_about",
+                // Custom about preference with link to the DeArrow website.
+                tag = DeArrowAboutPreference::class.java,
+                selectable = true,
+            )
+        )
     )
 
     addImageUrlHook(DeArrowPatch::overrideImageURL)

@@ -19,11 +19,11 @@ android {
 
     defaultConfig {
         applicationId = "io.github.nexalloy.patches.nexfusion"
-        versionCode = 48
+        versionCode = 49
         val patchVersion = Properties().apply {
             rootProject.file("morphe-patches/gradle.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
         }["version"]
-        versionName = "3.5.1"
+        versionName = "3.5.2"
         buildConfigField("String", "PATCH_VERSION", "\"$patchVersion\"")
     }
     sourceSets {
@@ -299,6 +299,7 @@ abstract class CopyResourcesTask @Inject constructor() : DefaultTask() {
             "navigationbuttons/drawable" to null,
             "speed/drawable" to null,
             "searchcomments/drawable" to null,
+            "channelsearch/drawable" to null,
         )
 
         for ((resourcePath, excludes) in resourcePaths) {

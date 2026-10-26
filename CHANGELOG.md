@@ -7,6 +7,13 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.5.2
+
+- `NexFusion` 3.5.2:
+  * Channel Search: Fully ported runtime channel search into NexFusion patch bundle. Adds dedicated search button beside YouTube's global search on channel pages with search hint reflection and channel-scoped result filtering. Compatible with YouTube 21.42.243 through 21.43.523+.
+  * DeArrow Preference Categories & Titles: Fixed duplicate/repetitive option titles in YouTube > Settings > Morphe settings > DeArrow. All 5 thumbnail preferences (Home, Subscriptions, You, Player, Search) now have distinct titles and are cleanly grouped under categorized headers with proper About preference linking.
+  * Submodule Sync: Updated `morphe-patches` with toolbar button injection for runtime channel search integration.
+
 ## 3.5.1
 
 - `NexFusion` 3.5.1:

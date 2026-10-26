@@ -13,6 +13,7 @@ import io.github.nexalloy.morphe.youtube.misc.playservice.is_21_42_or_greater
 import io.github.nexalloy.morphe.shared.misc.CheckRecycleBitmapMediaSession
 import io.github.nexalloy.morphe.shared.misc.debugging.experimentalBooleanFeatureFlagFingerprint
 import io.github.nexalloy.morphe.youtube.ad.HideAds
+import io.github.nexalloy.morphe.youtube.interaction.channelsearch.ChannelSearch
 import io.github.nexalloy.morphe.youtube.interaction.copyvideolink.CopyVideoLinkButtonPatch
 import io.github.nexalloy.morphe.youtube.interaction.downloads.Downloads
 import io.github.nexalloy.morphe.youtube.interaction.seekbar.seekbarPatch
@@ -132,6 +133,7 @@ val YouTubePatches = arrayOf(
     HideAds,
     CopyVideoLinkButtonPatch,
     Downloads,
+    ChannelSearch,
     HideShortsComponents,
     DisableShortsResumingOnStartup,
     SkipLiveShorts,
