@@ -7,6 +7,19 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.5.1
+
+- `NexFusion` 3.5.1:
+  * YouTube 21.43.523 Compatibility: Added target support for YouTube `21.43.523` (experimental) with backwards compatibility across all supported YouTube targets.
+  * Reddit 2026.43.0 Compatibility: Added target support for Reddit `2026.43.0`.
+  * Ambient Mode 21.43+: Handled removal of server feature flags in 21.43+ by cleanly returning empty renderer when ambient mode is disabled in settings.
+  * Navigation Bar 21.43+: Added support for resource-styled navigation tabs across all tabs, adapted Create button enum mapping, and fixed bottom room padding for fixed bars and comment replies.
+  * Miniplayer: Ported updated resume check and command matching for recent YouTube targets.
+  * Search Comments: Ported comments search filter with search button in engagement panel header.
+  * Download Post Images: Added support for downloading images and GIFs from channel and feed community posts.
+  * Channel Search: Added support for searching channel community posts alongside video uploads.
+  * Upstream Sync: Synchronized extensions and library with upstream `dev` branch.
+
 ## 3.5.0
 
 - `NexFusion` 3.5.0:

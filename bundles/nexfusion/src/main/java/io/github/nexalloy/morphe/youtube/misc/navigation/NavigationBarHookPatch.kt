@@ -9,6 +9,7 @@ import app.morphe.extension.shared.ResourceType
 import app.morphe.extension.shared.ResourceUtils
 import app.morphe.extension.shared.Utils
 import app.morphe.extension.youtube.patches.VersionCheckPatch
+import io.github.nexalloy.morphe.youtube.misc.playservice.is_21_43_or_greater
 import app.morphe.extension.youtube.shared.NavigationBar
 import io.github.nexalloy.createProxy
 import io.github.nexalloy.enumValueOf
@@ -37,9 +38,11 @@ val NavigationBarHook = patch(
     })
 
     // Hook the creation of navigation tab views.
-    ::initializeButtonsFingerprint.hookMethod(scopedHook(::pivotBarButtonsCreateDrawableViewFingerprint.member) {
-        after { NavigationBar.navigationTabLoaded(it.result as View) }
-    })
+    if (!is_21_43_or_greater) {
+        ::initializeButtonsFingerprint.hookMethod(scopedHook(::pivotBarButtonsCreateDrawableViewFingerprint.member) {
+            after { NavigationBar.navigationTabLoaded(it.result as View) }
+        })
+    }
 
 //    if (!is_20_28_or_greater) {
 //        // TODO
@@ -52,7 +55,7 @@ val NavigationBarHook = patch(
             after {
                 // The 'You' tab has no YT enum name; upstream detects it inside
                 // navigationTabLoaded by comparing the last loaded enum.
-                NavigationBar.navigationTabLoaded(it.result as View)
+                NavigationBar.navigationImageResourceTabLoaded(it.result as View)
             }
         })
 

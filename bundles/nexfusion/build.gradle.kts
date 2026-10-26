@@ -19,11 +19,11 @@ android {
 
     defaultConfig {
         applicationId = "io.github.nexalloy.patches.nexfusion"
-        versionCode = 47
+        versionCode = 48
         val patchVersion = Properties().apply {
             rootProject.file("morphe-patches/gradle.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
         }["version"]
-        versionName = "3.5.0"
+        versionName = "3.5.1"
         buildConfigField("String", "PATCH_VERSION", "\"$patchVersion\"")
     }
     sourceSets {
@@ -111,6 +111,7 @@ abstract class GenerateMorpheTargetsTask : DefaultTask() {
     companion object {
         private val VERIFIED_UPSTREAM_TARGETS = mapOf(
             "YOUTUBE" to listOf(
+                "new AppTarget(\"21.43.523\", true)",
                 "new AppTarget(\"21.42.243\", true)",
                 "new AppTarget(\"21.41.525\", true)",
                 "new AppTarget(\"21.40.161\", true)",
@@ -131,6 +132,7 @@ abstract class GenerateMorpheTargetsTask : DefaultTask() {
                 "new AppTarget(\"9.15.51\", false)"
             ),
             "REDDIT" to listOf(
+                "new AppTarget(\"2026.43.0\", true)",
                 "new AppTarget(\"2026.41.0\", true)",
                 "new AppTarget(\"2026.40.0\", true)",
                 "new AppTarget(\"2026.39.0\", true)",
@@ -296,6 +298,7 @@ abstract class CopyResourcesTask @Inject constructor() : DefaultTask() {
             "speedbutton/drawable" to null,
             "navigationbuttons/drawable" to null,
             "speed/drawable" to null,
+            "searchcomments/drawable" to null,
         )
 
         for ((resourcePath, excludes) in resourcePaths) {

@@ -99,6 +99,8 @@ val NavigationBar = patch(
     insertLiteralOverride(45630927L, NavigationBarPatch::useTranslucentNavigationBar)
     insertLiteralOverride(45632194L, NavigationBarPatch::useTranslucentNavigationBar)
     insertLiteralOverride(45631257L, NavigationBarPatch::useTranslucentNavigationBar)
+    insertLiteralOverride(45752241L, NavigationBarPatch::useFixedBottomBarRoom)
+    insertLiteralOverride(45724388L, false)
 
     // Android 12 and 13 can submit the player surface from two threads while drawing the blur.
     // The translucent color is retained, and only the duplicate blurred drawing is disabled.
@@ -215,6 +217,51 @@ val NavigationBar = patch(
                         param.result = null
                     }
                 }
+            }
+        }
+    }
+}
+
+fun getPivotBarItemProto(pivotBarItem: Any): app.morphe.extension.youtube.innertube.GuideResponseOuterClass.PivotBarItemBytes {
+    val bytes = if (pivotBarItem is ByteArray) {
+        pivotBarItem
+    } else {
+        pivotBarItem.javaClass.getMethod("toByteArray").invoke(pivotBarItem) as ByteArray
+    }
+    return app.morphe.extension.youtube.innertube.GuideResponseOuterClass.PivotBarItemBytes.parseFrom(bytes)
+}
+
+fun getPivotBarItemRenderer(pivotBarItem: Any): app.morphe.extension.youtube.innertube.GuideResponseOuterClass.PivotBarItemRenderer? {
+    return runCatching {
+        val bytes = if (pivotBarItem is ByteArray) {
+            pivotBarItem
+        } else {
+            pivotBarItem.javaClass.getMethod("toByteArray").invoke(pivotBarItem) as ByteArray
+        }
+        val item = app.morphe.extension.youtube.innertube.GuideResponseOuterClass.PivotBarItemBytes.parseFrom(bytes)
+        if (item.hasPivotBarItemRenderer()) {
+            app.morphe.extension.youtube.innertube.GuideResponseOuterClass.PivotBarItemRenderer.parseFrom(item.pivotBarItemRenderer)
+        } else {
+            app.morphe.extension.youtube.innertube.GuideResponseOuterClass.PivotBarItemRenderer.parseFrom(bytes)
+        }
+    }.getOrNull()
+}
+
+fun isPivotBar(view: View?): Boolean {
+    return view != null && view.javaClass.name.endsWith("PivotBar")
+}
+
+fun setNavigationBarSystemButtonsRoom(navigationBar: View?, room: Int) {
+    if (navigationBar == null) return
+    runCatching {
+        val cls = navigationBar.javaClass
+        val m = cls.methods.firstOrNull { it.name == "patch_setSystemButtonsRoom" }
+        if (m != null) {
+            m.invoke(navigationBar, room)
+        } else {
+            cls.declaredFields.firstOrNull { it.type == Int::class.javaPrimitiveType }?.let { f ->
+                f.isAccessible = true
+                f.setInt(navigationBar, room)
             }
         }
     }

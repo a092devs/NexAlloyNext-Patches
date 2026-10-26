@@ -183,6 +183,7 @@ private fun PatchExecutor.installForceAmbientModeRenderer() {
     val optionalPresentMethod = optionalClass.getMethod("isPresent")
     val optionalGetMethod = optionalClass.getMethod("get")
     val optionalOfMethod = optionalClass.getMethod("of", Object::class.java)
+    val optionalEmptyMethod = optionalClass.getMethod("empty")
 
     constructor.hookMethod {
         before { param ->
@@ -194,7 +195,15 @@ private fun PatchExecutor.installForceAmbientModeRenderer() {
 
                 // patch_forceAmbientModeRenderer: only forced while ambient mode is not disabled
                 // in the settings and the state is still waiting for a /next response.
-                if (ExtensionAmbientModePatch.disableAmbientMode(true) && state === waitingState) {
+                // Ambient mode is disabled: clear renderer so 21.43+ (which removed the feature flags) stays off
+                if (!ExtensionAmbientModePatch.disableAmbientMode(true)) {
+                    param.args[1] = optionalEmptyMethod.invoke(null)
+                    return@runCatching
+                }
+
+                // patch_forceAmbientModeRenderer: only forced while ambient mode is not disabled
+                // in the settings and the state is still waiting for a /next response.
+                if (state === waitingState) {
                     var renderer = if (optionalPresentMethod.invoke(optionalArgument) as Boolean) {
                         optionalGetMethod.invoke(optionalArgument)
                     } else {

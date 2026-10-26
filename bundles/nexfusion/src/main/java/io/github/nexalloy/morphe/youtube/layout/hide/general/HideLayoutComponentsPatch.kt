@@ -677,10 +677,4 @@ val HideLayoutComponents = patch(
     }
 
 
-    // region disable UI padding feature flags
-
-    if (is_21_07_or_greater) {
-        insertLiteralOverride(45752241, LayoutComponentsFilter::disableUIPaddingFeatureFlags)
-        insertLiteralOverride(45724388, LayoutComponentsFilter::disableUIPaddingFeatureFlags)
-    }
 }
