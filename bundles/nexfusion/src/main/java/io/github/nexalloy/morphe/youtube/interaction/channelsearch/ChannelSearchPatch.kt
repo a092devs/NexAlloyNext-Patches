@@ -43,20 +43,22 @@ val ChannelSearch = patch(
     })
 
     // 2. BrowseFragment endpoint setter & onCreateView hooks
-    ::browseFragmentSetterMethod.hookMethod {
-        before {
-            val endpoint = it.args[0]
-            if (endpoint != null) {
-                try {
-                    val bytes = endpoint.javaClass.getMethod("toByteArray").invoke(endpoint) as ByteArray
-                    val navEndpoint = NavigationEndpoint.parseFrom(bytes)
-                    val browseId = if (navEndpoint.hasBrowseEndpoint()) navEndpoint.browseEndpoint.browseId else null
-                    ChannelSearchExtension.setBrowseId(browseId)
-                } catch (_: Exception) {
+    runCatching {
+        ::browseFragmentSetterMethod.hookMethod {
+            before {
+                val endpoint = it.args[0]
+                if (endpoint != null) {
+                    try {
+                        val bytes = endpoint.javaClass.getMethod("toByteArray").invoke(endpoint) as ByteArray
+                        val navEndpoint = NavigationEndpoint.parseFrom(bytes)
+                        val browseId = if (navEndpoint.hasBrowseEndpoint()) navEndpoint.browseEndpoint.browseId else null
+                        ChannelSearchExtension.setBrowseId(browseId)
+                    } catch (_: Exception) {
+                        ChannelSearchExtension.setBrowseId(null)
+                    }
+                } else {
                     ChannelSearchExtension.setBrowseId(null)
                 }
-            } else {
-                ChannelSearchExtension.setBrowseId(null)
             }
         }
     }
@@ -101,3 +103,4 @@ val ChannelSearch = patch(
         }
     }
 }
+

@@ -7,6 +7,13 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.5.3
+
+- `NexFusion` 3.5.3:
+  * Channel Search Fingerprint Fix: Fixed runtime error when applying the "Channel search" patch. Corrected navigation endpoint field discovery in `BrowseFragmentOnCreateViewFingerprint` to accurately target the fragment's `NavigationEndpoint` instance rather than subsequent view theme models.
+  * Resilient Setter Resolution: Resolved `BrowseFragmentSetterMethod` matching failure by dynamically locating the endpoint assignment instruction and adding safe fallback handling.
+  * Search Submit Matching: Disambiguated `SearchSubmitFingerprint` DexKit query with `@StrictQuery` and invocation filtering (`toByteArray`), avoiding query result overflow across YouTube versions.
+
 ## 3.5.2
 
 - `NexFusion` 3.5.2:

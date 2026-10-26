@@ -13,6 +13,7 @@ import io.github.nexalloy.morphe.InstructionLocation.MatchAfterImmediately
 import io.github.nexalloy.morphe.InstructionLocation.MatchAfterWithin
 import io.github.nexalloy.morphe.Opcode
 import io.github.nexalloy.morphe.ResourceType
+import io.github.nexalloy.morphe.StrictQuery
 import io.github.nexalloy.morphe.anyInstruction
 import io.github.nexalloy.morphe.fieldAccess
 import io.github.nexalloy.morphe.findFieldDirect
@@ -33,23 +34,32 @@ internal object BrowseFragmentOnCreateViewFingerprint : Fingerprint(
         "Landroid/os/Bundle;"
     ),
     filters = listOf(
-        string("Browse Fragment was given a navigation endpoint without browse data."),
-        fieldAccess(
-            opcode = Opcode.IGET_OBJECT,
-            definingClass = "this"
-        )
+        string("Browse Fragment was given a navigation endpoint without browse data.")
     )
 )
 
 val browseFragmentEndpointField = findFieldDirect {
-    BrowseFragmentOnCreateViewFingerprint.instructionMatches[1].instruction.fieldRef!!
+    val onCreateViewMethod = BrowseFragmentOnCreateViewFingerprint()
+    val stringIndex = onCreateViewMethod.instructions.indexOfFirst {
+        it.string == "Browse Fragment was given a navigation endpoint without browse data."
+    }
+    val igetBefore = if (stringIndex > 0) {
+        onCreateViewMethod.instructions.subList(0, stringIndex).findLast {
+            it.opcode == 84 && it.fieldRef?.declaredClassName == onCreateViewMethod.declaredClassName
+        }
+    } else null
+    igetBefore?.fieldRef ?: BrowseFragmentOnCreateViewFingerprint.instructionMatches.getOrNull(1)?.instruction?.fieldRef!!
 }
 
 val browseFragmentSetterMethod = findMethodDirect {
+    val endpointField = browseFragmentEndpointField()
     val browseFragmentClass = BrowseFragmentOnCreateViewFingerprint().declaredClass!!
-    val endpointField = BrowseFragmentOnCreateViewFingerprint.instructionMatches[1].instruction.fieldRef!!
-    browseFragmentClass.methods.first { m ->
-        m.returnTypeName == "void" && m.paramCount == 1 && m.paramTypeNames.first() == endpointField.typeName
+    browseFragmentClass.methods.firstOrNull { m ->
+        m.returnTypeName == "void" && m.paramCount == 1 &&
+                m.instructions.any { it.opcode == 91 && it.fieldRef?.name == endpointField.name }
+    } ?: browseFragmentClass.methods.first { m ->
+        m.returnTypeName == "void" && m.paramCount == 1 &&
+                (m.paramTypeNames.first() == endpointField.typeName || m.paramTypeNames.first().contains(endpointField.typeName))
     }
 }
 
@@ -86,9 +96,16 @@ internal object SearchBoxHintFingerprint : Fingerprint(
 /**
  * Every search submit path funnels through this method.
  */
+@StrictQuery
 internal object SearchSubmitFingerprint : Fingerprint(
     returnType = "V",
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
+    custom = {
+        paramCount(6, 8)
+        addInvoke {
+            name = "toByteArray"
+        }
+    },
     filters = listOf(
         anyInstruction(
             methodCall( // 21.43+
