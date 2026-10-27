@@ -7,6 +7,14 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.5.4
+
+- `NexFusion` 3.5.4:
+  * Instagram `453.0.0.55.79` Compatibility: Verified and added official target support for Instagram `453.0.0.55.79`. Confirmed download sheet menus, story header binders, position fields, and DASH manifest finders.
+  * Reddit 2026.43.0 Target Alignment: Added `2026.43.0` target declaration to NexFusion patch metadata, synchronizing bundle support with `MorpheTargets.REDDIT` while preserving `2026.42.0` compatibility.
+  * X (Twitter) 12.37.2-prod.01 Catalog Sync: Validated timeline ad suppression and promoted content filtering for X `12.37.2-prod.01`.
+  * Target Inventory Synchronization: Synchronized target application inventories and recommendation lists across manager and bundle declarations for all 17 supported applications.
+
 ## 3.5.3
 
 - `NexFusion` 3.5.3:
