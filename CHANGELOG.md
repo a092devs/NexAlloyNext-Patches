@@ -7,10 +7,16 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.5.6
+
+- `NexFusion` 3.5.6:
+  * YouTube Recommended Version: Fixed target metadata experimental flags so YouTube 21.43.523 is correctly prioritized as the primary recommended version across all patcher surfaces.
+  * X (Twitter) 12.38.0-prod.01 Compatibility: Added target support for 12.38.0-prod.01 with enhanced constructor-level blur interception on `MediaVisibilityResults`.
+
 ## 3.5.5
 
 - `NexFusion` 3.5.5:
-  * YouTube Navigation Hook & Target Alignment: Guarded navigation bar hook against abstract class methods on YouTube 21.43.523. Promoted 21.43.523 to primary recommended target version.
+  * YouTube Navigation Guard: Guarded navigation bar hook against abstract class methods on YouTube 21.43.523.
   * LinkedIn Feature Expansion & SDUI Filtering:
     - Added "Download media": Adds a 1-tap download button to full-screen photo and video viewer presenters, supporting high-resolution MP4 streams and full-resolution vector/bitmap renditions via system DownloadManager.
     - Added "Hide suggested posts": Removes suggested posts outside network from feed via protobuf exact string inspection (`Suggested`, `Disarankan`).

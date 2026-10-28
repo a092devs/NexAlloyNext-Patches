@@ -161,6 +161,7 @@ object NexFusionPatches : PatchBundle {
             packageName = "com.twitter.android",
             patches = TwitterPatches,
             targets = listOf(
+                AppTarget("12.38.0-prod.01"),
                 AppTarget("12.37.2-prod.01"),
                 AppTarget("12.36.1-prod.01"),
                 AppTarget("12.35.0-prod.01"),

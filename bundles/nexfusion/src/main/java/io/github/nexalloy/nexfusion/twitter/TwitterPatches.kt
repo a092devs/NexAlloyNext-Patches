@@ -356,7 +356,14 @@ private fun IHook.installSensitiveMediaDisabler() {
         }
     }
 
-    // Compose sensitive-media presenter: ensure MediaVisibilityResults.getBlurImageInterstitial returns null
+    // Compose sensitive-media presenter: null out blur in MediaVisibilityResults constructors and getter hooks
+    hookAllConstructorsIfExists("com.x.models.interstitial.MediaVisibilityResults", "MediaVisibilityResults blur") {
+        before = { param ->
+            for (i in param.args.indices) {
+                param.args[i] = null
+            }
+        }
+    }
     try {
         val visibilityClass = classLoader.loadClass("com.x.models.interstitial.MediaVisibilityResults")
         for (m in visibilityClass.declaredMethods) {

@@ -107,7 +107,7 @@ A `.nxb` file is a signed APK container loaded directly into process memory by N
 | **Telegram (Web)** | `org.telegram.messenger.web` | Identical full-suite runtime patches as official Telegram for web-distributed standalone builds. Verified targets: 13.1.1, 13.1.0, 12.10.6. |
 | **Instagram** | `com.instagram.android` | Media downloader (posts, multi-photo carousels, Reels, Stories, Highlights, profile pictures) with custom save directory, per-username subfolders, and timestamp naming; sponsored post, Reels, and Story ad removal; anonymous Story and Live stream viewing; tracking link sanitizer; ghost mode. Verified targets: 453.0.0.38.87, 452.0.0.47.108, 451.0.0.44.109. |
 | **Facebook** | `com.facebook.katana` | Media downloader for photos, videos, Reels, and Stories with DASH stream and audio extraction; hide sponsored posts, Reels, and Stories; screenshot restriction bypass; telemetry blocking. Verified targets: 584.0.0.46.108, 583.0.0.47.69, 582.0.0.41.97. |
-| **X (Twitter)** | `com.twitter.android` | Promoted post and ad removal; video and GIF download unlock; bypass Compose sensitive media blur interstitials without tap-to-reveal; outdated-app warning and forced in-app update block; telemetry and analytics blackholing; Premium upsell removal; tracking link sanitizer. Verified targets: 11.45.0-release.0, 11.44.0-release.0, 11.43.0-release.0. |
+| **X (Twitter)** | `com.twitter.android` | Promoted post and ad removal; video and GIF download unlock; bypass Compose sensitive media blur interstitials without tap-to-reveal; outdated-app warning and forced in-app update block; telemetry and analytics blackholing; Premium upsell removal; tracking link sanitizer. Verified targets: 12.38.0-prod.01, 12.37.2-prod.01, 12.36.1-prod.01, 12.35.0-prod.01. |
 | **Reddit** | `com.reddit.frontpage` | Feed and comment ad removal, start as guest mode, sanitize sharing URLs, suppress screenshot banner, custom feed sorting, Redgifs audio unmuting. Verified targets: 2026.43.0, 2026.42.0, 2026.41.0. |
 | **Discord** | `com.discord` | Suppress crash telemetry, analytics, touch logging, install attribution, and advertising identifiers; native phone font support. Verified targets: 286.0 through 292.0. |
 | **LinkedIn** | `com.linkedin.android` | 1-tap media downloader for photos, multi-image carousels, and progressive MP4 videos with download overlay button; sanitize copy and share links; bypass `safety/go` interstitial redirects directly; hide suggested posts (`Suggested`, `Disarankan`); hide promoted jobs (`Promoted`, `Dipromosikan`); hide Premium upsell banners in navigation panel and SDUI feeds; feed filters (celebrations, job cards, reposts, videos, reaction counts, new posts pill); Material You dynamic wallpaper palette (Android 12+); suppress tracking telemetry. Verified targets: 4.1.1266, 4.1.1265, 4.1.1264. |
@@ -157,8 +157,8 @@ NexAlloyNext discovers bundles through **patch sources**. A source can be config
 - **Direct Feed Source:** A JSON endpoint declaring bundle versions, download URLs, and metadata:
   ```json
   {
-    "version": "3.5.5",
-    "download_url": "https://github.com/a092devs/NexAlloyNext-Patches/releases/download/v3.5.5/nexfusion-3.5.5.nxb",
+    "version": "3.5.6",
+    "download_url": "https://github.com/a092devs/NexAlloyNext-Patches/releases/download/3.5.6/nexfusion-3.5.6.nxb",
     "description": "Unified community runtime patch bundle"
   }
   ```
