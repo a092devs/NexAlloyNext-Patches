@@ -207,6 +207,8 @@ val GboardAiWritingTools = patch(
         "writing_tools_cooperative_mode_min_shown_times_before_triggering_tooltip" to FlagOverride.forceLong(0L),
         "writing_tools_cooperative_mode_min_shown_cumulative_time_before_triggering_tooltip_secs" to FlagOverride.forceLong(0L),
         "writing_tools_enable_stable_entrance" to FlagOverride.forceTrue(),
+        "enable_writing_tools_replace_button" to FlagOverride.forceTrue(),
+        "writing_tools_replace_button" to FlagOverride.forceTrue(),
         "writing_tools_enable_streaming_ui" to FlagOverride.forceTrue(),
         "writing_tools_suggest_style" to FlagOverride.forceTrue(),
         "enable_writing_tools_suggest_style" to FlagOverride.forceTrue(),
@@ -245,6 +247,7 @@ val GboardAiWritingTools = patch(
         "llm_pc_supported_language_tags" to FlagOverride.forceString("*"),
         "writing_tools_supported_locales" to FlagOverride.forceString("*"),
         "proofread_supported_locales" to FlagOverride.forceString("*"),
+        "proofread_supported_apps" to FlagOverride.forceString(""),
         "enable_device_intelligence" to FlagOverride.forceTrue(),
         "enable_access_point_keyboard" to FlagOverride.forceTrue(),
         "enable_nga_lab_modeless_smartedit" to FlagOverride.forceTrue(),
@@ -470,6 +473,58 @@ val GboardSignatureBypass = patch(
     GboardSignatureBypassHook.install(classLoader)
 }
 
+val GboardGoogleSansTypography = patch(
+    name = "Google Sans Flex typography",
+    description = "Enables Google Sans Flex keycap font styling and GM3 expressive design.",
+) {
+    gboardFlagOverrides(
+        "google_sans_flex" to FlagOverride.forceTrue(),
+        "platform_google_sans_flex" to FlagOverride.forceTrue(),
+        "gm3_expressive" to FlagOverride.forceTrue(),
+    )
+}
+
+val GboardUndoControls = patch(
+    name = "Undo action controls",
+    description = "Enables proactive 1-tap Undo buttons in the suggestion strip after text replacements and autocorrection.",
+) {
+    gboardFlagOverrides(
+        "undo_proactive_post_correction" to FlagOverride.forceTrue(),
+        "undo_proactive_auto_correction_cooperative" to FlagOverride.forceTrue(),
+        "undo_enable_chunk_fusion" to FlagOverride.forceTrue(),
+        "nga_enable_undo_delete" to FlagOverride.forceTrue(),
+        "undo_stop_deferred_range_notification" to FlagOverride.forceFalse(),
+        "undo_stop_pk_handling" to FlagOverride.forceFalse(),
+        "undo_promotion_banner_threshold" to FlagOverride.forceLong(1L),
+        "undo_max_chunk" to FlagOverride.forceLong(100L),
+        "undo_truncate_suffix_len" to FlagOverride.forceLong(64L),
+        "undo_suppress_app_pattern" to FlagOverride.forceString(""),
+    )
+}
+
+val GboardQuickAndMagicEmoji = patch(
+    name = "Quick & Magic Emoji (Emojify)",
+    description = "Enables the fast-access emoji bar and Gemini-powered Magic Emoji suggestion button.",
+) {
+    gboardFlagOverrides(
+        "enable_fast_access_bar" to FlagOverride.forceTrue(),
+        "fast_access_bar_app_whitelist" to FlagOverride.forceString(""),
+        "enable_emojify" to FlagOverride.forceTrue(),
+        "enable_emojify_settings_option" to FlagOverride.forceTrue(),
+        "enable_emojify_language_tags" to FlagOverride.forceString("*"),
+        "emojify_app_allowlist" to FlagOverride.forceString(""),
+        "enable_emojify_shortcut_when_followed_by_emoji" to FlagOverride.forceTrue(),
+        "enable_emojify_when_talkback_on" to FlagOverride.forceTrue(),
+        "enable_emojify_model" to FlagOverride.forceTrue(),
+    )
+    enableGboardPreferences(
+        booleans = mapOf(
+            "enable_fast_access_bar" to true,
+            "enable_emojify" to true,
+        )
+    )
+}
+
 val GboardPatches = arrayOf(
     GboardSettingsMenu,
     GboardRamblerVoiceTyping,
@@ -480,6 +535,9 @@ val GboardPatches = arrayOf(
     GboardSmartAutoCorrection,
     GboardClipboardHistorySlider,
     GboardSignatureBypass,
+    GboardGoogleSansTypography,
+    GboardUndoControls,
+    GboardQuickAndMagicEmoji,
     GboardCursorTrackpad,
     GboardQuickInsert,
     GboardEmojiSize,

@@ -1,9 +1,19 @@
 package io.github.nexalloy.nexfusion.linkedin
 
+import android.content.Context
+import android.content.res.ColorStateList
+import android.content.res.Resources
+import android.content.res.TypedArray
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XC_MethodHook.MethodHookParam
 import de.robv.android.xposed.XposedBridge
+import io.github.nexalloy.IHook
 import io.github.nexalloy.PatcherLog
+import io.github.nexalloy.hookMethod
 import io.github.nexalloy.patch
 import java.lang.reflect.Field
 import java.lang.reflect.Method
@@ -13,13 +23,8 @@ import java.util.concurrent.ConcurrentHashMap
 // - extensions/extension/src/main/java/app/linkedin/extension/MessagingPatch.java
 // - extensions/extension/src/main/java/app/linkedin/extension/DoubleTapPatch.java
 // - extensions/extension/src/main/java/app/linkedin/extension/HideAdsPatch.java and SduiComponentFilter.java
-//   (the sponsored feed update rules only)
-// - patches/src/main/kotlin/app/linkedin/patches/{messaging,feed,ads}/
-//
-// Upstream rewrites the LinkedIn call sites so its extension receives the model objects; this port
-// hooks the same methods at runtime and replaces the in-app settings with the manager's per-patch
-// toggles. LinkedIn keeps the model field names its own code reads, so the filters below read the
-// fields reflectively instead of being compiled against the app.
+// - extensions/extension/src/main/java/app/linkedin/extension/MaterialYou.java
+// - patches/src/main/kotlin/app/linkedin/patches/{messaging,feed,ads,theme}/
 
 val HideSponsoredMessages = patch(
     name = "Hide sponsored messages",
@@ -109,9 +114,6 @@ val DisableDoubleTapLike = patch(
 ) {
     try {
         val clickActions = classLoader.loadClass("com.linkedin.sdui.viewdata.action.ClickActions")
-        // Upstream's fingerprint is (ActionListViewData, ActionListViewData, ActionListViewData);
-        // 4.1.1261 appended a fourth InteractionPhaseActions parameter, with onDoubleClick still in
-        // the third slot.
         val targets = clickActions.declaredConstructors.filter { candidate ->
             val types = candidate.parameterTypes
             types.size >= 3 &&
@@ -133,25 +135,7 @@ val HideFeedAds = patch(
     name = "Hide feed ads",
     description = "Removes promoted posts from the feed, in the server-driven and legacy lists.",
 ) {
-    // Server driven feed: every component passes through ComponentTransformer.doTransform, and it
-    // already returns null for components it does not render.
-    try {
-        val transformer = classLoader.loadClass("com.linkedin.sdui.transformer.impl.ComponentTransformer")
-        val targets = transformer.declaredMethods.filter {
-            it.name == "doTransform" &&
-                it.parameterTypes.firstOrNull()?.name == "proto.sdui.components.core.Component"
-        }
-        if (targets.isEmpty()) throw NoSuchMethodException("ComponentTransformer.doTransform(Component, ...)")
-        val hook = object : XC_MethodHook() {
-            override fun beforeHookedMethod(param: MethodHookParam) {
-                val component = param.args.getOrNull(0) ?: return
-                if (isSponsoredComponent(component)) param.result = null
-            }
-        }
-        targets.forEach { XposedBridge.hookMethod(it, hook) }
-    } catch (t: Throwable) {
-        PatcherLog.info(t) { "NexFusion: LinkedIn SDUI transformer target not found" }
-    }
+    hookSduiTransformer { component -> isSponsoredComponent(component) }
 
     // Legacy feed: the model filter rebuilds the collection through copyWithNewElements.
     try {
@@ -172,6 +156,102 @@ val HideFeedAds = patch(
     }
 }
 
+val HideSuggestedPosts = patch(
+    name = "Hide suggested posts",
+    description = "Removes \"Suggested\" posts from outside your network from the feed.",
+) {
+    hookSduiTransformer { component -> isSuggestedComponent(component) }
+}
+
+val HidePromotedJobs = patch(
+    name = "Hide promoted jobs",
+    description = "Removes promoted job listings from the Jobs tab and job search.",
+) {
+    hookSduiTransformer { component -> isPromotedJobComponent(component) }
+}
+
+val HidePremiumUpsells = patch(
+    name = "Hide Premium upsells",
+    description = "Removes Premium and AI upsell cards and banners, including on profiles and the Me panel.",
+) {
+    hookSduiTransformer { component -> isPremiumUpsellComponent(component) }
+
+    try {
+        val navPanelTransformer = classLoader.loadClass("com.linkedin.android.home.navpanel.HomeNavPanelTransformer")
+        val targets = navPanelTransformer.declaredMethods.filter {
+            it.name == "toPremiumViewData" && it.parameterTypes.size == 1
+        }
+        val hook = object : XC_MethodHook() {
+            override fun beforeHookedMethod(param: MethodHookParam) {
+                param.args[0] = null
+            }
+        }
+        targets.forEach { XposedBridge.hookMethod(it, hook) }
+    } catch (t: Throwable) {
+        PatcherLog.info(t) { "NexFusion: LinkedIn HomeNavPanelTransformer.toPremiumViewData target not found" }
+    }
+}
+
+val FeedFilters = patch(
+    name = "Feed filters",
+    description = "Filters celebrations, job cards, reposts, videos, reaction counts, and the new posts pill.",
+    use = false,
+) {
+    hookSduiTransformer { component -> isFeedFilteredComponent(component) }
+}
+
+val MaterialYouTheme = patch(
+    name = "Material You theme",
+    description = "Applies dynamic wallpaper colors to LinkedIn accents and card backgrounds on Android 12+.",
+    use = false,
+) {
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+        val colors = LinkedInMaterialYouColors(appContext)
+
+        PorterDuffColorFilter::class.java.getConstructor(Int::class.javaPrimitiveType, PorterDuff.Mode::class.java).hookMethod {
+            before { it.args[0] = colors.map(it.args[0] as Int) }
+        }
+        ColorStateList::class.java.getMethod("getColorForState", IntArray::class.java, Int::class.javaPrimitiveType).hookMethod {
+            after { param ->
+                param.result = colors.map(param.result as Int)
+            }
+        }
+        Color::class.java.getMethod("parseColor", String::class.java).hookMethod {
+            after { it.result = colors.map(it.result as Int) }
+        }
+        Paint::class.java.getMethod("setColor", Int::class.javaPrimitiveType).hookMethod {
+            before { it.args[0] = colors.map(it.args[0] as Int) }
+        }
+        Resources::class.java.getMethod("getColor", Int::class.javaPrimitiveType, Resources.Theme::class.java).hookMethod {
+            after { it.result = colors.map(it.result as Int) }
+        }
+        TypedArray::class.java.getMethod("getColor", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType).hookMethod {
+            after { it.result = colors.map(it.result as Int) }
+        }
+    }
+}
+
+/** Hooks SDUI ComponentTransformer.doTransform to filter components matching [predicate]. */
+private fun IHook.hookSduiTransformer(predicate: (Any) -> Boolean) {
+    try {
+        val transformer = classLoader.loadClass("com.linkedin.sdui.transformer.impl.ComponentTransformer")
+        val targets = transformer.declaredMethods.filter {
+            it.name == "doTransform" &&
+                it.parameterTypes.firstOrNull()?.name == "proto.sdui.components.core.Component"
+        }
+        if (targets.isEmpty()) throw NoSuchMethodException("ComponentTransformer.doTransform(Component, ...)")
+        val hook = object : XC_MethodHook() {
+            override fun beforeHookedMethod(param: MethodHookParam) {
+                val component = param.args.getOrNull(0) ?: return
+                if (predicate(component)) param.result = null
+            }
+        }
+        targets.forEach { XposedBridge.hookMethod(it, hook) }
+    } catch (t: Throwable) {
+        PatcherLog.info(t) { "NexFusion: LinkedIn SDUI transformer target not found" }
+    }
+}
+
 /** Sponsored conversation list items, the same two markers upstream's isSponsored checks. */
 private fun isSponsoredConversation(conversation: Any?): Boolean {
     if (conversation == null) return false
@@ -179,8 +259,8 @@ private fun isSponsoredConversation(conversation: Any?): Boolean {
     if (fieldValue(contentMetadata, "hasConversationAdContentValue") == true) return true
     val latestMessage = fieldValue(conversation, "latestMessage") ?: return false
     return runCatching {
-        val messageItemKt = latestMessage.javaClass.classLoader
-            .loadClass("com.linkedin.android.messenger.data.extensions.MessageItemKt")
+        val loader = latestMessage.javaClass.classLoader ?: return false
+        val messageItemKt = loader.loadClass("com.linkedin.android.messenger.data.extensions.MessageItemKt")
         val isSpInMail = messageItemKt.getMethod("isSpInMail", latestMessage.javaClass)
         isSpInMail.invoke(null, latestMessage) == true
     }.getOrDefault(false)
@@ -200,7 +280,87 @@ private fun isSponsoredComponent(component: Any): Boolean {
         }
         callOrNull(viewTracking, "getViewName") == "feed-full-update" &&
             (hasSponsoredTracking(viewTracking) || payloadContains(component, SPONSORED_CONTENT_MARKER))
-    } catch (t: Throwable) {
+    } catch (_: Throwable) {
+        false
+    }
+}
+
+private fun isSuggestedComponent(component: Any): Boolean {
+    return try {
+        val viewTracking = if (callOrNull(component, "hasViewTracking") == true) {
+            callOrNull(component, "getViewTracking")
+        } else {
+            null
+        }
+        if (callOrNull(viewTracking, "getViewName") != "feed-full-update") return false
+        val payload = callOrNull(component, "toByteArray") as? ByteArray ?: return false
+        hasExactString(payload, "Suggested", "Disarankan")
+    } catch (_: Throwable) {
+        false
+    }
+}
+
+private fun isPromotedJobComponent(component: Any): Boolean {
+    return try {
+        val viewTracking = if (callOrNull(component, "hasViewTracking") == true) {
+            callOrNull(component, "getViewTracking")
+        } else {
+            null
+        }
+        if (callOrNull(viewTracking, "getViewName") != "job-card") return false
+        val payload = callOrNull(component, "toByteArray") as? ByteArray ?: return false
+        hasExactString(payload, "Promoted", "Dipromosikan")
+    } catch (_: Throwable) {
+        false
+    }
+}
+
+private fun isPremiumUpsellComponent(component: Any): Boolean {
+    return try {
+        val viewTracking = if (callOrNull(component, "hasViewTracking") == true) {
+            callOrNull(component, "getViewTracking")
+        } else {
+            null
+        }
+        val viewName = callOrNull(viewTracking, "getViewName") as? String ?: ""
+        if (viewName.contains("upsell")) return true
+        if (viewName == "profile-card-promo" && payloadContains(component, "premium-upsell-card")) return true
+        false
+    } catch (_: Throwable) {
+        false
+    }
+}
+
+private val FILTERED_SDUI_VIEWS = setOf(
+    "feed-reaction-count",
+    "feed-comment-count",
+    "feed-repost-count",
+    "comment-reaction-count",
+    "feed-new-update-pill",
+    "feed-see-translation",
+)
+
+private fun isFeedFilteredComponent(component: Any): Boolean {
+    return try {
+        val viewTracking = if (callOrNull(component, "hasViewTracking") == true) {
+            callOrNull(component, "getViewTracking")
+        } else {
+            null
+        }
+        val viewName = callOrNull(viewTracking, "getViewName") as? String ?: ""
+        if (viewName in FILTERED_SDUI_VIEWS) return true
+        if (viewName == "feed-full-update") {
+            val payload = callOrNull(component, "toByteArray") as? ByteArray ?: return false
+            if (containsAscii(payload, "feed-celebrations-update-detail") ||
+                containsAscii(payload, "feed-job-card-entity") ||
+                containsAscii(payload, "feed-original-share-description") ||
+                containsAscii(payload, "large-single-video-view")
+            ) {
+                return true
+            }
+        }
+        false
+    } catch (_: Throwable) {
         false
     }
 }
@@ -217,7 +377,7 @@ private fun filterSponsoredUpdates(updates: List<*>): List<*> = try {
         val trackingData = fieldValue(fieldValue(update, "metadata"), "trackingData")
         fieldValue(trackingData, "sponsoredTracking") != null
     }
-} catch (t: Throwable) {
+} catch (_: Throwable) {
     updates
 }
 
@@ -260,4 +420,54 @@ private fun callOrNull(target: Any?, name: String): Any? {
         cls.methods.filter { it.parameterTypes.isEmpty() }.associateBy { it.name }
     }[name] ?: return null
     return runCatching { method.invoke(target) }.getOrNull()
+}
+
+/** Maps LinkedIn's blue palette and Mercado background surfaces to Android 12+ wallpaper dynamic colors. */
+private class LinkedInMaterialYouColors(context: Context) {
+    private fun Context.systemColor(name: String, fallback: Int): Int = try {
+        val id = resources.getIdentifier(name, "color", "android")
+        if (id != 0) getColor(id) else fallback
+    } catch (_: Exception) {
+        fallback
+    }
+
+    private val accentShades = mapOf(
+        0xF6FBFF to "system_accent1_10",
+        0xE8F3FF to "system_accent1_50",
+        0xD0E8FF to "system_accent1_100",
+        0xD2E9FF to "system_accent1_100",
+        0xA8D4FF to "system_accent1_200",
+        0xAAD6FF to "system_accent1_200",
+        0x70B5F9 to "system_accent1_200",
+        0x71B7FB to "system_accent1_200",
+        0x378FE9 to "system_accent1_400",
+        0x0A66C2 to "system_accent1_600",
+        0x004182 to "system_accent1_700",
+        0x09223B to "system_accent1_800",
+        0x0A2037 to "system_accent1_900",
+    )
+
+    private val backgroundShades = mapOf(
+        0x1B1F23 to "system_neutral2_800",
+        0x1D2226 to "system_neutral2_800",
+        0x293037 to "system_neutral2_700",
+        0x293138 to "system_neutral2_700",
+        0xF4F2EE to "system_neutral2_50",
+        0xF3F2EF to "system_neutral2_50",
+    )
+
+    private val resolvedColors = buildMap {
+        for ((rgb, name) in accentShades) {
+            put(rgb, context.systemColor(name, rgb or -0x1000000))
+        }
+        for ((rgb, name) in backgroundShades) {
+            put(rgb, context.systemColor(name, rgb or -0x1000000))
+        }
+    }
+
+    fun map(color: Int): Int {
+        val rgb = color and 0xFFFFFF
+        val mapped = resolvedColors[rgb] ?: return color
+        return (color and -0x1000000) or (mapped and 0xFFFFFF)
+    }
 }

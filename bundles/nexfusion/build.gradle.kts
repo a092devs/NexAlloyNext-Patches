@@ -19,11 +19,11 @@ android {
 
     defaultConfig {
         applicationId = "io.github.nexalloy.patches.nexfusion"
-        versionCode = 51
+        versionCode = 52
         val patchVersion = Properties().apply {
             rootProject.file("morphe-patches/gradle.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
         }["version"]
-        versionName = "3.5.4"
+        versionName = "3.5.5"
         buildConfigField("String", "PATCH_VERSION", "\"$patchVersion\"")
     }
     sourceSets {

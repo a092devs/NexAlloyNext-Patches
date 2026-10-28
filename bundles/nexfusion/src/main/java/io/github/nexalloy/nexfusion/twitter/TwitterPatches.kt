@@ -1,5 +1,9 @@
 package io.github.nexalloy.nexfusion.twitter
 
+import de.robv.android.xposed.XC_MethodHook
+import de.robv.android.xposed.XC_MethodHook.MethodHookParam
+import de.robv.android.xposed.XC_MethodReplacement
+import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
 import io.github.nexalloy.HookDsl
 import io.github.nexalloy.IHook
@@ -351,4 +355,16 @@ private fun IHook.installSensitiveMediaDisabler() {
             }
         }
     }
+
+    // Compose sensitive-media presenter: ensure MediaVisibilityResults.getBlurImageInterstitial returns null
+    try {
+        val visibilityClass = classLoader.loadClass("com.x.models.interstitial.MediaVisibilityResults")
+        for (m in visibilityClass.declaredMethods) {
+            if (m.name == "getBlurImageInterstitial" || (m.name.startsWith("get") && m.returnType.name.contains("BlurImageInterstitial"))) {
+                XposedBridge.hookMethod(m, object : XC_MethodReplacement() {
+                    override fun replaceHookedMethod(param: MethodHookParam): Any? = null
+                })
+            }
+        }
+    } catch (_: Throwable) {}
 }

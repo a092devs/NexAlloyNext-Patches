@@ -7,6 +7,27 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.5.5
+
+- `NexFusion` 3.5.5:
+  * YouTube Navigation Hook & Target Alignment: Guarded navigation bar hook against abstract class methods on YouTube 21.43.523. Promoted 21.43.523 to primary recommended target version.
+  * LinkedIn Feature Expansion & SDUI Filtering:
+    - Added "Download media": Adds a 1-tap download button to full-screen photo and video viewer presenters, supporting high-resolution MP4 streams and full-resolution vector/bitmap renditions via system DownloadManager.
+    - Added "Hide suggested posts": Removes suggested posts outside network from feed via protobuf exact string inspection (`Suggested`, `Disarankan`).
+    - Added "Hide promoted jobs": Filters promoted job cards from Jobs tab and search results (`Promoted`, `Dipromosikan`).
+    - Added "Hide Premium upsells": Filters premium promotional banners, AI upsell cards, and Me panel upsell slot content.
+    - Added "Feed filters": Configurable suppression of celebration updates, job posts, reposts, videos, reaction counts, and the new posts pill.
+    - Added "Material You theme": Dynamic wallpaper palette mapping for LinkedIn blue accents and surface containers on Android 12+.
+    - Target compatibility updated to include LinkedIn 4.1.1266.
+  * X (Twitter) Sensitive Media Compose Interstitial Bypass: Added reflection hook on `MediaVisibilityResults.getBlurImageInterstitial` to reveal sensitive media directly across Compose timelines without requiring manual tap-to-reveal.
+  * Gboard Typography & Control Enhancements:
+    - Added "Google Sans Flex typography": Enables Google Sans Flex keycap styling and GM3 expressive design flags.
+    - Added "Undo action controls": Adds proactive 1-tap Undo buttons in suggestion strip post-correction and autocorrection.
+    - Added "Quick & Magic Emoji (Emojify)": Unlocks fast-access emoji toolbar and Gemini-powered Magic Emoji suggestion button.
+    - Enhanced AI writing tools and spell checker chips with replace button integration and stable entrance controls.
+  * Telegram Play Store Build Support: Added official target support for Telegram and Telegram (Web) 13.1.1.
+  * Target & Catalog Synchronization: Synchronized recommended targets and compatibility definitions across all supported apps.
+
 ## 3.5.4
 
 - `NexFusion` 3.5.4:

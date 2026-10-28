@@ -29,4 +29,13 @@ class AsciiScanTest {
         assertEquals(false, containsAscii("abc".toByteArray(), ""))
         assertEquals(false, containsAscii(ByteArray(0), "abc"))
     }
+
+    @Test
+    fun `hasExactString matches exact protobuf strings`() {
+        val strBytes = "Suggested".toByteArray()
+        val payload = byteArrayOf(0x0a, strBytes.size.toByte()) + strBytes
+        assertEquals(true, hasExactString(payload, "Suggested", "Disarankan"))
+        assertEquals(false, hasExactString(payload, "Suggest", "Disarankan"))
+        assertEquals(false, hasExactString(null, "Suggested"))
+    }
 }

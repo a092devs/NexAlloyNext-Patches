@@ -99,6 +99,7 @@ val BlockTracking = patch(
 }
 
 val LinkedInPatches = arrayOf(
+    DownloadMedia,
     SanitizeShareLinks,
     OpenLinksDirectly,
     BlockTracking,
@@ -107,6 +108,11 @@ val LinkedInPatches = arrayOf(
     GhostNoReadReceipts,
     DisableDoubleTapLike,
     HideFeedAds,
+    HideSuggestedPosts,
+    HidePromotedJobs,
+    HidePremiumUpsells,
+    FeedFilters,
+    MaterialYouTheme,
 )
 
 /** Hooks [descriptor] with a before callback, skipping targets this LinkedIn version does not have. */
