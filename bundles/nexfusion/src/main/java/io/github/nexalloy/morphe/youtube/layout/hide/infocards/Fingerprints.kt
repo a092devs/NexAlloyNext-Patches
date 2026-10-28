@@ -1,5 +1,6 @@
 package io.github.nexalloy.morphe.youtube.layout.hide.infocards
 
+import io.github.nexalloy.SkipTest
 import io.github.nexalloy.morphe.findMethodDirect
 import org.luckypray.dexkit.query.enums.StringMatchType
 
@@ -14,6 +15,7 @@ import org.luckypray.dexkit.query.enums.StringMatchType
  * The method that shows/hides info cards.
  * Hook it to return false to hide info cards.
  */
+@get:SkipTest
 internal val hideInfoCardsMethod = findMethodDirect {
     findMethod {
         matcher {

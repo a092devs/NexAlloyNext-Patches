@@ -7,6 +7,7 @@ import app.morphe.extension.youtube.patches.AmbientModePatch as ExtensionAmbient
 import app.morphe.extension.youtube.settings.Settings
 import io.github.nexalloy.FindMethodFunc
 import io.github.nexalloy.PatchExecutor
+import io.github.nexalloy.PatcherLog
 import io.github.nexalloy.hookMethod
 import io.github.nexalloy.morphe.findMethodDirect
 import io.github.nexalloy.morphe.findFieldFromToString
@@ -54,9 +55,29 @@ internal object CinematicContainerForceAnchors {
     val isInitialized: Boolean
         get() = rendererClassDescriptor != null
 
+    private fun getAppVersionCode(context: Context): Long = runCatching {
+        @Suppress("DEPRECATION")
+        context.packageManager.getPackageInfo(context.packageName, 0).versionCode.toLong()
+    }.getOrDefault(0L)
+
+    fun clear(context: Context) {
+        rendererClassDescriptor = null
+        hasBitsFieldDescriptor = null
+        styleHasBitMask = 0
+        styleFieldDescriptor = null
+        configFieldDescriptor = null
+        enabledByDefaultFieldDescriptor = null
+        stateTypeDescriptor = null
+        waitingStateFieldDescriptor = null
+        loadedStateFieldDescriptor = null
+        context.getSharedPreferences("nexalloy_anchors_ambient", Context.MODE_PRIVATE).edit().clear().apply()
+    }
+
     fun save(context: Context) {
         if (!isInitialized) return
+        val currentVersion = getAppVersionCode(context)
         context.getSharedPreferences("nexalloy_anchors_ambient", Context.MODE_PRIVATE).edit()
+            .putLong("cached_version_code", currentVersion)
             .putString("rendererClassDescriptor", rendererClassDescriptor)
             .putString("hasBitsFieldDescriptor", hasBitsFieldDescriptor)
             .putInt("styleHasBitMask", styleHasBitMask)
@@ -71,6 +92,12 @@ internal object CinematicContainerForceAnchors {
 
     fun load(context: Context): Boolean {
         val prefs = context.getSharedPreferences("nexalloy_anchors_ambient", Context.MODE_PRIVATE)
+        val currentVersion = getAppVersionCode(context)
+        val cachedVersion = prefs.getLong("cached_version_code", -1L)
+        if (cachedVersion != currentVersion || currentVersion == 0L) {
+            clear(context)
+            return false
+        }
         rendererClassDescriptor = prefs.getString("rendererClassDescriptor", null) ?: return false
         hasBitsFieldDescriptor = prefs.getString("hasBitsFieldDescriptor", null) ?: return false
         styleHasBitMask = prefs.getInt("styleHasBitMask", 0)
@@ -290,9 +317,17 @@ val AmbientMode = patch(
             ::resolveCinematicContainerForceAnchors.dexMethod
             CinematicContainerForceAnchors.save(appContext)
         }
-        installForceAmbientModeRenderer()
+        try {
+            installForceAmbientModeRenderer()
+        } catch (e: Throwable) {
+            // Stale or invalid cached anchors: clear cache, re-resolve fresh, and retry once
+            CinematicContainerForceAnchors.clear(appContext)
+            ::resolveCinematicContainerForceAnchors.dexMethod
+            CinematicContainerForceAnchors.save(appContext)
+            installForceAmbientModeRenderer()
+        }
     }.onFailure {
-        app.morphe.extension.shared.Logger.printException { "Force ambient mode hook not installed: ${it.message}" }
+        PatcherLog.error(it) { "Force ambient mode hook not installed: ${it.message ?: it.javaClass.simpleName}" }
     }
 
     // Bypass Ambient mode restrictions: while the setting is on, pretend the device is not in

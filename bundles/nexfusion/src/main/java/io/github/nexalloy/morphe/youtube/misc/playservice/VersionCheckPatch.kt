@@ -3,117 +3,116 @@
 package io.github.nexalloy.morphe.youtube.misc.playservice
 
 import io.github.nexalloy.patch
-import kotlin.properties.Delegates
 
 // Use notNull delegate so an exception is thrown if these fields are accessed before they are set.
 
-var is_20_22_or_greater : Boolean by Delegates.notNull()
+var is_20_22_or_greater : Boolean = false
     private set
-var is_20_26_or_greater : Boolean by Delegates.notNull()
+var is_20_26_or_greater : Boolean = false
     private set
-var is_20_28_or_greater : Boolean by Delegates.notNull()
+var is_20_28_or_greater : Boolean = false
     private set
-var is_20_29_or_greater : Boolean by Delegates.notNull()
+var is_20_29_or_greater : Boolean = false
     private set
-var is_20_30_or_greater : Boolean by Delegates.notNull()
+var is_20_30_or_greater : Boolean = false
     private set
-var is_20_31_or_greater : Boolean by Delegates.notNull()
+var is_20_31_or_greater : Boolean = false
     private set
-var is_20_34_or_greater : Boolean by Delegates.notNull()
+var is_20_34_or_greater : Boolean = false
     private set
-var is_20_35_or_greater : Boolean by Delegates.notNull()
+var is_20_35_or_greater : Boolean = false
     private set
-var is_20_37_or_greater : Boolean by Delegates.notNull()
+var is_20_37_or_greater : Boolean = false
     private set
-var is_20_38_or_greater : Boolean by Delegates.notNull()
+var is_20_38_or_greater : Boolean = false
     private set
-var is_20_39_or_greater : Boolean by Delegates.notNull()
+var is_20_39_or_greater : Boolean = false
     private set
-var is_20_40_or_greater : Boolean by Delegates.notNull()
+var is_20_40_or_greater : Boolean = false
     private set
-var is_20_41_or_greater : Boolean by Delegates.notNull()
+var is_20_41_or_greater : Boolean = false
     private set
-var is_20_43_or_greater : Boolean by Delegates.notNull()
+var is_20_43_or_greater : Boolean = false
     private set
-var is_20_45_or_greater : Boolean by Delegates.notNull()
+var is_20_45_or_greater : Boolean = false
     private set
-var is_20_46_or_greater : Boolean by Delegates.notNull()
+var is_20_46_or_greater : Boolean = false
     private set
-var is_20_47_or_greater : Boolean by Delegates.notNull()
+var is_20_47_or_greater : Boolean = false
     private set
-var is_20_49_or_greater : Boolean by Delegates.notNull()
+var is_20_49_or_greater : Boolean = false
     private set
-var is_21_02_or_greater : Boolean by Delegates.notNull()
+var is_21_02_or_greater : Boolean = false
     private set
-var is_21_03_or_greater : Boolean by Delegates.notNull()
+var is_21_03_or_greater : Boolean = false
     private set
-var is_21_04_or_greater : Boolean by Delegates.notNull()
+var is_21_04_or_greater : Boolean = false
     private set
-var is_21_05_or_greater : Boolean by Delegates.notNull()
+var is_21_05_or_greater : Boolean = false
     private set
-var is_21_06_or_greater : Boolean by Delegates.notNull()
+var is_21_06_or_greater : Boolean = false
     private set
-var is_21_07_or_greater : Boolean by Delegates.notNull()
+var is_21_07_or_greater : Boolean = false
     private set
-var is_21_08_or_greater : Boolean by Delegates.notNull()
+var is_21_08_or_greater : Boolean = false
     private set
-var is_21_10_or_greater : Boolean by Delegates.notNull()
+var is_21_10_or_greater : Boolean = false
     private set
-var is_21_11_or_greater : Boolean by Delegates.notNull()
+var is_21_11_or_greater : Boolean = false
     private set
-var is_21_12_or_greater : Boolean by Delegates.notNull()
+var is_21_12_or_greater : Boolean = false
     private set
-var is_21_13_or_greater : Boolean by Delegates.notNull()
+var is_21_13_or_greater : Boolean = false
     private set
-var is_21_14_or_greater : Boolean by Delegates.notNull()
+var is_21_14_or_greater : Boolean = false
     private set
-var is_21_15_or_greater : Boolean by Delegates.notNull()
+var is_21_15_or_greater : Boolean = false
     private set
-var is_21_17_or_greater : Boolean by Delegates.notNull()
+var is_21_17_or_greater : Boolean = false
     private set
-var is_21_18_or_greater : Boolean by Delegates.notNull()
+var is_21_18_or_greater : Boolean = false
     private set
-var is_21_19_or_greater : Boolean by Delegates.notNull()
+var is_21_19_or_greater : Boolean = false
     private set
-var is_21_20_or_greater : Boolean by Delegates.notNull()
+var is_21_20_or_greater : Boolean = false
     private set
-var is_21_21_or_greater : Boolean by Delegates.notNull()
+var is_21_21_or_greater : Boolean = false
     private set
-var is_21_23_or_greater : Boolean by Delegates.notNull()
+var is_21_23_or_greater : Boolean = false
     private set
-var is_21_24_or_greater : Boolean by Delegates.notNull()
+var is_21_24_or_greater : Boolean = false
     private set
-var is_21_25_or_greater : Boolean by Delegates.notNull()
+var is_21_25_or_greater : Boolean = false
     private set
-var is_21_26_or_greater : Boolean by Delegates.notNull()
+var is_21_26_or_greater : Boolean = false
     private set
-var is_21_28_or_greater : Boolean by Delegates.notNull()
+var is_21_28_or_greater : Boolean = false
     private set
-var is_21_29_or_greater : Boolean by Delegates.notNull()
+var is_21_29_or_greater : Boolean = false
     private set
-var is_21_30_or_greater : Boolean by Delegates.notNull()
+var is_21_30_or_greater : Boolean = false
     private set
-var is_21_31_or_greater : Boolean by Delegates.notNull()
+var is_21_31_or_greater : Boolean = false
     private set
-var is_21_32_or_greater : Boolean by Delegates.notNull()
+var is_21_32_or_greater : Boolean = false
     private set
-var is_21_33_or_greater : Boolean by Delegates.notNull()
+var is_21_33_or_greater : Boolean = false
     private set
-var is_21_35_or_greater : Boolean by Delegates.notNull()
+var is_21_35_or_greater : Boolean = false
     private set
-var is_21_36_or_greater : Boolean by Delegates.notNull()
+var is_21_36_or_greater : Boolean = false
     private set
-var is_21_38_or_greater : Boolean by Delegates.notNull()
+var is_21_38_or_greater : Boolean = false
     private set
-var is_21_39_or_greater : Boolean by Delegates.notNull()
+var is_21_39_or_greater : Boolean = false
     private set
-var is_21_40_or_greater : Boolean by Delegates.notNull()
+var is_21_40_or_greater : Boolean = false
     private set
-var is_21_41_or_greater : Boolean by Delegates.notNull()
+var is_21_41_or_greater : Boolean = false
     private set
-var is_21_42_or_greater : Boolean by Delegates.notNull()
+var is_21_42_or_greater : Boolean = false
     private set
-var is_21_43_or_greater : Boolean by Delegates.notNull()
+var is_21_43_or_greater : Boolean = false
     private set
 
 val VersionCheck = patch {

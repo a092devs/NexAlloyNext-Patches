@@ -6,6 +6,7 @@ import app.morphe.extension.shared.Logger
 import app.morphe.extension.youtube.patches.CaptionsInPipPatch
 import io.github.nexalloy.FindMethodFunc
 import io.github.nexalloy.PatchExecutor
+import io.github.nexalloy.PatcherLog
 import io.github.nexalloy.hookMethod
 import io.github.nexalloy.morphe.Fingerprint
 import io.github.nexalloy.morphe.InstructionLocation.MatchAfterImmediately
@@ -70,10 +71,30 @@ internal object CaptionsInPipAnchors {
     val isInitialized: Boolean
         get() = pipFieldDescriptor != null && stateTypeDescriptor != null && captionsOverlayClassDescriptor != null
 
+    private fun getAppVersionCode(context: Context): Long = runCatching {
+        @Suppress("DEPRECATION")
+        context.packageManager.getPackageInfo(context.packageName, 0).versionCode.toLong()
+    }.getOrDefault(0L)
+
+    fun clear(context: Context) {
+        stateTypeDescriptor = null
+        fieldNames = null
+        pipArgIndex = -1
+        pipFieldDescriptor = null
+        stateCtorDescriptor = null
+        captionsOverlayClassDescriptor = null
+        overlayCheckNames = emptySet()
+        currentTrackFieldDescriptor = null
+        setTrackMethodDescriptor = null
+        context.getSharedPreferences("nexalloy_anchors_captions_pip", Context.MODE_PRIVATE).edit().clear().apply()
+    }
+
     fun save(context: Context) {
         if (!isInitialized) return
+        val currentVersion = getAppVersionCode(context)
         val prefs = context.getSharedPreferences("nexalloy_anchors_captions_pip", Context.MODE_PRIVATE)
         prefs.edit()
+            .putLong("cached_version_code", currentVersion)
             .putString("stateTypeDescriptor", stateTypeDescriptor)
             .putString("fieldNames", fieldNames?.joinToString(","))
             .putInt("pipArgIndex", pipArgIndex)
@@ -88,6 +109,12 @@ internal object CaptionsInPipAnchors {
 
     fun load(context: Context): Boolean {
         val prefs = context.getSharedPreferences("nexalloy_anchors_captions_pip", Context.MODE_PRIVATE)
+        val currentVersion = getAppVersionCode(context)
+        val cachedVersion = prefs.getLong("cached_version_code", -1L)
+        if (cachedVersion != currentVersion || currentVersion == 0L) {
+            clear(context)
+            return false
+        }
         val pip = prefs.getString("pipFieldDescriptor", null) ?: return false
         stateTypeDescriptor = prefs.getString("stateTypeDescriptor", null) ?: return false
         fieldNames = prefs.getString("fieldNames", "")?.split(",") ?: return false
@@ -373,20 +400,20 @@ val CaptionsInPip = patch(
         return@patch
     }
 
-    if (!CaptionsInPipAnchors.load(appContext)) {
-        runCatching {
+    runCatching {
+        if (!CaptionsInPipAnchors.load(appContext)) {
             ::resolveCaptionsInPipAnchors.dexMethod
             CaptionsInPipAnchors.save(appContext)
-        }.onFailure {
-            Logger.printException { "Captions in PIP anchor resolution failed: ${it.message}" }
         }
-    }
-
-    if (CaptionsInPipAnchors.isInitialized) {
-        runCatching {
+        try {
             resolveCaptionsInPipMembers()
-        }.onFailure {
-            Logger.printException { "Captions in PIP member resolution failed: ${it.message}" }
+        } catch (e: Throwable) {
+            CaptionsInPipAnchors.clear(appContext)
+            ::resolveCaptionsInPipAnchors.dexMethod
+            CaptionsInPipAnchors.save(appContext)
+            resolveCaptionsInPipMembers()
         }
+    }.onFailure {
+        PatcherLog.error(it) { "Captions in PIP initialization failed: ${it.message ?: it.javaClass.simpleName}" }
     }
 }

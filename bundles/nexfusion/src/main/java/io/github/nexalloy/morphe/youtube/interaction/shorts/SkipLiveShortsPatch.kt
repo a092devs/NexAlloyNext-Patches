@@ -5,6 +5,7 @@ import android.content.Context
 import de.robv.android.xposed.XposedHelpers
 import io.github.nexalloy.FindMethodFunc
 import io.github.nexalloy.PatchExecutor
+import io.github.nexalloy.PatcherLog
 import io.github.nexalloy.hookMethod
 import io.github.nexalloy.morphe.AccessFlags
 import io.github.nexalloy.morphe.Fingerprint
@@ -123,10 +124,27 @@ internal object ReelSkipAnchors {
     val isInitialized: Boolean
         get() = userActionConstructorDescriptor != null && controllerMethodDescriptor != null && playerClassDescriptor != null
 
+    private fun getAppVersionCode(context: Context): Long = runCatching {
+        @Suppress("DEPRECATION")
+        context.packageManager.getPackageInfo(context.packageName, 0).versionCode.toLong()
+    }.getOrDefault(0L)
+
+    fun clear(context: Context) {
+        userActionConstructorDescriptor = null
+        controllerMethodDescriptor = null
+        playerClassDescriptor = null
+        controllerFieldDescriptor = null
+        playerFieldDescriptor = null
+        context.getSharedPreferences("nexalloy_anchors_reel_skip", Context.MODE_PRIVATE).edit().clear().apply()
+    }
+
     fun save(context: Context) {
         if (!isInitialized) return
         val prefs = context.getSharedPreferences("nexalloy_anchors_reel_skip", Context.MODE_PRIVATE)
+
+        val currentVersion = getAppVersionCode(context)
         prefs.edit()
+            .putLong("cached_version_code", currentVersion)
             .putString("userActionConstructorDescriptor", userActionConstructorDescriptor)
             .putString("controllerMethodDescriptor", controllerMethodDescriptor)
             .putString("playerClassDescriptor", playerClassDescriptor)
@@ -137,6 +155,13 @@ internal object ReelSkipAnchors {
 
     fun load(context: Context): Boolean {
         val prefs = context.getSharedPreferences("nexalloy_anchors_reel_skip", Context.MODE_PRIVATE)
+
+        val currentVersion = getAppVersionCode(context)
+        val cachedVersion = prefs.getLong("cached_version_code", -1L)
+        if (cachedVersion != currentVersion || currentVersion == 0L) {
+            clear(context)
+            return false
+        }
         userActionConstructorDescriptor = prefs.getString("userActionConstructorDescriptor", null) ?: return false
         controllerMethodDescriptor = prefs.getString("controllerMethodDescriptor", null) ?: return false
         playerClassDescriptor = prefs.getString("playerClassDescriptor", null) ?: return false
@@ -307,8 +332,15 @@ val SkipLiveShorts = patch(
             ::resolveReelSkipAnchors.dexMethod
             ReelSkipAnchors.save(appContext)
         }
-        resolveReelSkipMembers()
+        try {
+            resolveReelSkipMembers()
+        } catch (e: Throwable) {
+            ReelSkipAnchors.clear(appContext)
+            ::resolveReelSkipAnchors.dexMethod
+            ReelSkipAnchors.save(appContext)
+            resolveReelSkipMembers()
+        }
     }.onFailure {
-        app.morphe.extension.shared.Logger.printException { "Skip live shorts initialization failed: ${it.message}" }
+        PatcherLog.error(it) { "Skip live shorts initialization failed: ${it.message ?: it.javaClass.simpleName}" }
     }
 }

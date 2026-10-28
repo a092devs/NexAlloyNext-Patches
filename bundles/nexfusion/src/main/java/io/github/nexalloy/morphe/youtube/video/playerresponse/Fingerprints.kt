@@ -30,7 +30,7 @@ val playerParameterBuilderClass = findClassDirect {
                 "PLAYER_RESPONSE_SOURCE_KEY"
             )
         }
-    }.single().declaredClass!! //
+    }.first().declaredClass!! //
         .methods.first { it.isConstructor && it.paramCount >= 3 } //
         .paramTypes[2]
 }
@@ -54,7 +54,7 @@ val playerParameterBuilderFingerprint = findMethodDirect {
             // boolean / XXX.time.Duration
             paramCount(min = 11)
         }
-    }.single()
+    }.first()
         // Unit Test
         .also {
             if (BuildConfig.DEBUG) {

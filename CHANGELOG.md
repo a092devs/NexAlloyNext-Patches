@@ -7,6 +7,18 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.5.8
+
+- `NexFusion` 3.5.8:
+  * YouTube Patch Resilience & Dynamic Version Handling:
+    - Updated `AppVersion.parse` to sanitize leading prefixes and architecture/build variant tags (e.g., `v21.43.523`, `21.43.523 (arm64-v8a)`), preventing modern YouTube builds from falsely degrading to legacy fallback hooks.
+    - Converted version comparison delegates to fail-safe default values, preventing early evaluation uninitialized property exceptions.
+    - Updated `playerParameterBuilderClass` and `playerParameterBuilderFingerprint` to robustly select the primary overload on YouTube 21.42+ targets.
+    - Version-Aware Anchor Caching: Stored version codes with cached anchor preferences in Ambient Mode, Skip Live Shorts, and Captions in PIP, automatically invalidating stale descriptors across YouTube updates and eliminating missing field toasts.
+    - Toast Suppression & Safe Degradation: Replaced user-facing exception toasts with silent background diagnostic logs and automatic runtime cache re-resolution.
+    - Streamlined `FormatStreamModelToStringFingerprint` with string token matching and guarded optional info card layout hooks.
+  * Test Suite Integration: Added YouTube verification targets to automated test suites across all supported releases.
+
 ## 3.5.7
 
 - `NexFusion` 3.5.7:

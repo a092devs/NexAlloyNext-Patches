@@ -19,7 +19,6 @@ internal object FormatStreamModelToStringFingerprint : Fingerprint(
         string(" audioTrackDisplayName="),
         string(" width="),
         string(" height="),
-        fieldAccess(opcode = Opcode.IGET_OBJECT, definingClass = "this", type = "L"),
         string("FormatStream(itag="),
         string(" mimeType=")
     )

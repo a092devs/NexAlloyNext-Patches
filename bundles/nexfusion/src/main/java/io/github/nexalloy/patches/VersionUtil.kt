@@ -79,8 +79,14 @@ data class AppVersion(
                 return AppVersion(trimmed, emptyList(), null, isValid = false)
             }
 
+            // Discard leading 'v' / 'V' and strip trailing space-delimited text/architecture
+            val clean = trimmed.removePrefix("v").removePrefix("V").substringBefore(' ')
+            if (clean.isEmpty()) {
+                return AppVersion(trimmed, emptyList(), null, isValid = false)
+            }
+
             // Discard build metadata after '+' (metadata does not affect precedence per SemVer 2.0.0)
-            val noMetadata = trimmed.substringBefore('+')
+            val noMetadata = clean.substringBefore('+')
             if (noMetadata.isEmpty()) {
                 return AppVersion(trimmed, emptyList(), null, isValid = false)
             }
