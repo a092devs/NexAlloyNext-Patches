@@ -157,8 +157,8 @@ NexAlloyNext discovers bundles through **patch sources**. A source can be config
 - **Direct Feed Source:** A JSON endpoint declaring bundle versions, download URLs, and metadata:
   ```json
   {
-    "version": "3.5.6",
-    "download_url": "https://github.com/a092devs/NexAlloyNext-Patches/releases/download/3.5.6/nexfusion-3.5.6.nxb",
+    "version": "3.5.7",
+    "download_url": "https://github.com/a092devs/NexAlloyNext-Patches/releases/download/3.5.7/nexfusion-3.5.7.nxb",
     "description": "Unified community runtime patch bundle"
   }
   ```

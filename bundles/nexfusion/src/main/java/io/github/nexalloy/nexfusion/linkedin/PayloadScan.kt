@@ -32,12 +32,131 @@ internal fun hasExactString(data: ByteArray?, vararg values: String): Boolean {
     return false
 }
 
-private const val MAX_PROTO_DEPTH = 48
+internal data class ImageRef(
+    val root: String,
+    val largestUrl: String,
+    val largestWidth: Int,
+    val smallestUrl: String
+)
 
-internal fun scanStrings(data: ByteArray): List<String> {
-    val results = mutableListOf<String>()
-    parseProtoMessage(data, 0, data.size, 0, results)
-    return results
+internal class ProtoScanResult(
+    val strings: List<String>,
+    val images: List<ImageRef>
+)
+
+internal data class MediaItem(
+    val assetId: String,
+    val isVideo: Boolean,
+    val url: String,
+    val size: Int,
+    var thumbnailUrl: String? = null
+) {
+    fun label(): String = if (isVideo) "Video ${size}p" else "Photo ${size}px"
+}
+
+private const val MAX_PROTO_DEPTH = 48
+private const val IMAGE_ROOT_PREFIX = "https://media.licdn.com/dms/image/"
+
+internal fun scanProto(data: ByteArray): ProtoScanResult {
+    val strings = mutableListOf<String>()
+    val images = mutableListOf<ImageRef>()
+    parseProtoMessage(data, 0, data.size, 0, strings, images)
+    return ProtoScanResult(strings, images)
+}
+
+internal fun scanStrings(data: ByteArray): List<String> = scanProto(data).strings
+
+internal fun extractMediaItems(scan: ProtoScanResult, isProfileScreen: Boolean): List<MediaItem> {
+    val videos = LinkedHashMap<String, MediaItem>()
+    for (s in scan.strings) {
+        val start = s.indexOf("https://dms.licdn.com/playlist/vid/")
+        if (start < 0) continue
+        val url = s.substring(start)
+        val rem = if (url.startsWith("https://dms.licdn.com/playlist/vid/v2/")) {
+            url.substring("https://dms.licdn.com/playlist/vid/v2/".length)
+        } else {
+            url.substring("https://dms.licdn.com/playlist/vid/".length)
+        }
+        val asset = rem.substringBefore('/')
+        val mp4Idx = url.indexOf("/mp4-")
+        if (asset.isEmpty() || mp4Idx < 0) continue
+        val heightStr = url.substring(mp4Idx + "/mp4-".length).takeWhile { it.isDigit() }
+        val height = heightStr.toIntOrNull() ?: continue
+        val current = videos[asset]
+        if (current == null || height > current.size) {
+            videos[asset] = MediaItem(asset, isVideo = true, url = url, size = height)
+        }
+    }
+
+    val images = LinkedHashMap<String, MediaItem>()
+    val thumbnails = LinkedHashMap<String, String>()
+    for (img in scan.images) {
+        val prefix = if (img.root.startsWith("https://media.licdn.com/dms/image/v2/")) {
+            "https://media.licdn.com/dms/image/v2/"
+        } else if (img.root.startsWith("https://media.licdn.com/dms/image/")) {
+            "https://media.licdn.com/dms/image/"
+        } else continue
+
+        val afterPrefix = img.root.substring(prefix.length)
+        val asset = afterPrefix.substringBefore('/')
+        if (asset.isEmpty()) continue
+        val kind = afterPrefix.substringAfter('/', "")
+
+        if (kind.startsWith("videocover")) {
+            thumbnails[asset] = img.smallestUrl
+        } else if (isProfileScreen) {
+            if (kind.startsWith("profile-displayphoto") || kind.startsWith("profile-displaybackgroundimage")) {
+                val current = images[asset]
+                if (current == null || img.largestWidth > current.size) {
+                    images[asset] = MediaItem(asset, isVideo = false, url = img.largestUrl, size = img.largestWidth, thumbnailUrl = img.smallestUrl)
+                }
+            }
+        } else {
+            if (kind.startsWith("feedshare-") || kind.startsWith("image-shrink_") || kind.startsWith("shrink_") ||
+                (!kind.startsWith("videocover") && !kind.startsWith("profile-") && !kind.startsWith("company-logo"))) {
+                val current = images[asset]
+                if (current == null || img.largestWidth > current.size) {
+                    images[asset] = MediaItem(asset, isVideo = false, url = img.largestUrl, size = img.largestWidth, thumbnailUrl = img.smallestUrl)
+                }
+            }
+        }
+    }
+
+    // Fallback: scan strings for direct image URLs if no structured renditions matched
+    if (images.isEmpty()) {
+        for (s in scan.strings) {
+            if (!s.startsWith("https://media.licdn.com/dms/image/")) continue
+            val afterPrefix = if (s.startsWith("https://media.licdn.com/dms/image/v2/")) {
+                s.substring("https://media.licdn.com/dms/image/v2/".length)
+            } else {
+                s.substring("https://media.licdn.com/dms/image/".length)
+            }
+            val asset = afterPrefix.substringBefore('/')
+            if (asset.isEmpty() || asset.length < 5) continue
+            val kind = afterPrefix.substringAfter('/', "")
+            if (kind.startsWith("videocover")) continue
+            if (!isProfileScreen && (kind.startsWith("profile-") || kind.startsWith("company-logo"))) continue
+            if (!images.containsKey(asset)) {
+                images[asset] = MediaItem(asset, isVideo = false, url = s, size = 1080)
+            }
+        }
+    }
+
+    for (video in videos.values) {
+        video.thumbnailUrl = thumbnails[video.assetId]
+    }
+
+    val result = ArrayList<MediaItem>()
+    result.addAll(videos.values)
+    result.addAll(images.values)
+    return result
+}
+
+private class MessageNode {
+    var field1String: String? = null
+    var field1Varint: Long = -1L
+    var field3String: String? = null
+    val field2Messages = mutableListOf<MessageNode>()
 }
 
 private fun parseProtoMessage(
@@ -45,56 +164,92 @@ private fun parseProtoMessage(
     start: Int,
     end: Int,
     depth: Int,
-    outStrings: MutableList<String>
-): Boolean {
-    if (depth > MAX_PROTO_DEPTH) return false
+    outStrings: MutableList<String>,
+    outImages: MutableList<ImageRef>
+): MessageNode? {
+    if (depth > MAX_PROTO_DEPTH) return null
+    val message = MessageNode()
     val foundStrings = mutableListOf<String>()
+    val foundImages = mutableListOf<ImageRef>()
     var p = start
     while (p < end) {
-        val tagResult = readVarint(b, p, end) ?: return false
+        val tagResult = readVarint(b, p, end) ?: return null
         val tag = tagResult[0]
         p = tagResult[1].toInt()
         val field = (tag ushr 3).toInt()
         val wireType = (tag and 7L).toInt()
-        if (field <= 0) return false
+        if (field <= 0) return null
 
         when (wireType) {
             0 -> {
-                val v = readVarint(b, p, end) ?: return false
+                val v = readVarint(b, p, end) ?: return null
                 p = v[1].toInt()
+                if (field == 1) message.field1Varint = v[0]
             }
             1 -> p += 8
             5 -> p += 4
             2 -> {
-                val lenResult = readVarint(b, p, end) ?: return false
+                val lenResult = readVarint(b, p, end) ?: return null
                 val len = lenResult[0]
                 p = lenResult[1].toInt()
-                if (len < 0 || len > end - p) return false
+                if (len < 0 || len > end - p) return null
                 val subEnd = p + len.toInt()
                 val s = printableUtf8(b, p, subEnd)
                 if (s != null) {
                     foundStrings.add(s)
+                    if (field == 1) message.field1String = s
+                    if (field == 3) message.field3String = s
                 } else {
-                    val childStrings = mutableListOf<String>()
-                    var success = parseProtoMessage(b, p, subEnd, depth + 1, childStrings)
-                    if (!success && subEnd > p + 1 && b[p] == 0.toByte()) {
-                        childStrings.clear()
-                        success = parseProtoMessage(b, p + 1, subEnd, depth + 1, childStrings)
+                    var sub = parseProtoMessage(b, p, subEnd, depth + 1, foundStrings, foundImages)
+                    if (sub == null && subEnd > p + 1 && b[p] == 0.toByte()) {
+                        sub = parseProtoMessage(b, p + 1, subEnd, depth + 1, foundStrings, foundImages)
                     }
-                    if (success) {
-                        foundStrings.addAll(childStrings)
+                    if (sub != null) {
+                        if (field == 2) message.field2Messages.add(sub)
                     } else {
                         salvageStrings(b, p, subEnd, foundStrings)
                     }
                 }
                 p = subEnd
             }
-            else -> return false
+            else -> return null
         }
-        if (p > end) return false
+        if (p > end) return null
     }
     outStrings.addAll(foundStrings)
-    return true
+    outImages.addAll(foundImages)
+    val image = asImage(message)
+    if (image != null) outImages.add(image)
+    return message
+}
+
+private fun asImage(m: MessageNode): ImageRef? {
+    val root = m.field1String ?: return null
+    if (!root.startsWith(IMAGE_ROOT_PREFIX)) return null
+    var largest: String? = null
+    var smallest: String? = null
+    var largestWidth = -1L
+    var smallestWidth = Long.MAX_VALUE
+    for (r in m.field2Messages) {
+        val suffix = r.field3String ?: continue
+        val width = r.field1Varint
+        if (width <= 0) continue
+        if (width > largestWidth) {
+            largestWidth = width
+            largest = suffix
+        }
+        if (width < smallestWidth) {
+            smallestWidth = width
+            smallest = suffix
+        }
+    }
+    if (largest == null) return null
+    return ImageRef(
+        root = root,
+        largestUrl = root + largest,
+        largestWidth = largestWidth.toInt(),
+        smallestUrl = root + (smallest ?: largest)
+    )
 }
 
 private fun salvageStrings(b: ByteArray, start: Int, end: Int, out: MutableList<String>) {

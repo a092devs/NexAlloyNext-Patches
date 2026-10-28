@@ -7,6 +7,11 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.5.7
+
+- `NexFusion` 3.5.7:
+  * LinkedIn Media Downloader: Implemented full SDUI media extraction and lifecycle hooks (`ComponentTransformer.doTransform` and `SduiFragment`). Adds download buttons to full-screen photo posts, video posts, multi-photo carousels, profile pictures, and profile banners with single-tap direct download and multi-media chooser dialogs saving to `Pictures/LinkedIn` and `Movies/LinkedIn`.
+
 ## 3.5.6
 
 - `NexFusion` 3.5.6:
