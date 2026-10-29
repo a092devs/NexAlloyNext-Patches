@@ -42,6 +42,8 @@ object NexFusionPatches : PatchBundle {
             packageName = "com.discord",
             patches = DiscordPatches,
             targets = listOf(
+                AppTarget("351.11 - Stable"),
+                AppTarget("351.11"),
                 AppTarget("350.8 - Stable"),
                 AppTarget("350.8"),
                 AppTarget("349.9 - Stable"),
@@ -67,6 +69,7 @@ object NexFusionPatches : PatchBundle {
             packageName = "com.instagram.android",
             patches = InstagramPatches,
             targets = listOf(
+                AppTarget("453.0.0.57.79"),
                 AppTarget("453.0.0.55.79"),
                 AppTarget("452.1.0.53.64"),
                 AppTarget("452.0.0.48.64"),
@@ -139,6 +142,7 @@ object NexFusionPatches : PatchBundle {
             packageName = "com.reddit.frontpage",
             patches = RedditPatches,
             targets = listOf(
+                AppTarget("2026.43.1"),
                 AppTarget("2026.43.0"),
                 AppTarget("2026.42.0"),
                 AppTarget("2026.41.0"),

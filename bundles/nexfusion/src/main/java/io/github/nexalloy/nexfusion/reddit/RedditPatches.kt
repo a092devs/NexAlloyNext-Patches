@@ -15,7 +15,7 @@ import java.lang.reflect.Proxy
 import java.util.concurrent.Executor
 
 // Ported from jkennethcarino/adobo (GPL-3.0),
-// patches/src/main/kotlin/dev/jkcarino/adobo/patches/reddit/ (Reddit 2026.38.0 - 2026.14.0).
+// patches/src/main/kotlin/dev/jkcarino/adobo/patches/reddit/ (Reddit 2026.43.1 - 2026.14.0).
 //
 // Adobo rewrites Reddit's bytecode at build time (returnEarly stubs and one-instruction edits);
 // this file installs runtime hooks that reach the same results. Each patch keeps its upstream

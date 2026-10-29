@@ -10,7 +10,7 @@ class PrivacyTargetsTest {
     @Test
     fun `tables hold the ported upstream targets`() {
         assertEquals(42, PrivacyTargets.crash.size)
-        assertEquals(64, PrivacyTargets.telemetry.size)
+        assertEquals(59, PrivacyTargets.telemetry.size)
         assertEquals(2, PrivacyTargets.advertising.size)
         assertEquals(27, PrivacyTargets.attribution.size)
     }

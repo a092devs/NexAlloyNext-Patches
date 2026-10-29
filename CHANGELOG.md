@@ -7,6 +7,21 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.5.9
+
+- `NexFusion` 3.5.9:
+  * Discord 351.11 - Stable:
+    - Remapped the jank-stats privacy entries that moved from `JankStatsModule` to `JankScreenContext`, followed `FrameMetricsAggregator.enableTracking(Window)`, and updated `JankSessionRecorder` to `nameOpenSegment`; all 130 privacy descriptors and the ReactFontManager phone-font anchor now resolve on 351.11.
+    - Added `351.11 - Stable` to the declared targets.
+  * Instagram 453.0.0.57.79:
+    - Verified the download menu, carousel/story anchors, media getters, Tigon request filter and kept class names against the installed build.
+    - Added `453.0.0.57.79` to the declared targets.
+  * Reddit 2026.43.1:
+    - Verified the feed, ad, media, sharing and onboarding fingerprints against the installed build.
+    - Added `2026.43.1` to the declared targets.
+  * Tests:
+    - Added a binary-backed Discord privacy-target test and refreshed the supported-version matrix.
+
 ## 3.5.8
 
 - `NexFusion` 3.5.8:

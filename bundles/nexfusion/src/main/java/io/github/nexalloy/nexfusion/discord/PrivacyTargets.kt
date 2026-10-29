@@ -5,7 +5,9 @@ package io.github.nexalloy.nexfusion.discord
 //
 // Venus rewrites these methods with an early-return prefix at build time. This module installs the
 // same stubs at runtime: the hook callback replaces the method body with the same result, so the
-// original code never runs. Keep the tables identical to upstream so they can be diffed against it.
+// original code never runs. Entries are grouped like upstream; the jank-stats block follows the
+// 351.11 layout, where the screen-context calls moved from JankStatsModule to JankScreenContext
+// and FrameMetricsAggregator.enableTracking gained the Window parameter.
 //
 // Two upstream targets are not ported because their names are obfuscated and version-specific:
 //   - Lio/sentry/android/core/c1;->b(Context, l0, b4)V          (Sentry's disk cache; covered by
@@ -128,9 +130,8 @@ internal object PrivacyTargets {
         PrivacyTarget("Lcom/discord/jank_stats/JankStatsAggregator;", "disableTracking", listOf(), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/JankStatsAggregator;", "issueJankReport", listOf("Ljava/lang/String;"), "Lcom/discord/jank_stats/JankReport;", PrivacyResult.NULL),
         PrivacyTarget("Lcom/discord/jank_stats/JankStatsAggregator;", "setJankHeuristicMultiplier", listOf("F"), "V", PrivacyResult.VOID),
-        PrivacyTarget("Lcom/discord/jank_stats/FrameMetricsAggregator;", "initialize", listOf("Landroid/view/Window;"), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/FrameMetricsAggregator;", "bindTo", listOf("Landroid/view/Window;"), "V", PrivacyResult.VOID),
-        PrivacyTarget("Lcom/discord/jank_stats/FrameMetricsAggregator;", "enableTracking", listOf(), "V", PrivacyResult.VOID),
+        PrivacyTarget("Lcom/discord/jank_stats/FrameMetricsAggregator;", "enableTracking", listOf("Landroid/view/Window;"), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/FrameMetricsAggregator;", "disableTracking", listOf(), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/FrameMetricsAggregator;", "closeReportWindow", listOf(), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/FrameMetricsAggregator;", "issueReport", listOf(), "Lcom/discord/jank_stats/FrameMetricsReport;", PrivacyResult.NULL),
@@ -138,10 +139,6 @@ internal object PrivacyTargets {
         PrivacyTarget("Lcom/discord/jank_stats/JankStatsModule;", "requestReport", listOf(), "Lcom/facebook/react/bridge/WritableMap;", PrivacyResult.NULL),
         PrivacyTarget("Lcom/discord/jank_stats/JankStatsModule;", "startTracking", listOf(), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/JankStatsModule;", "stopTracking", listOf(), "V", PrivacyResult.VOID),
-        PrivacyTarget("Lcom/discord/jank_stats/JankStatsModule;", "beginScreenTransition", listOf(), "V", PrivacyResult.VOID),
-        PrivacyTarget("Lcom/discord/jank_stats/JankStatsModule;", "nameCurrentScreen", listOf("Ljava/lang/String;", "Ljava/lang/String;"), "V", PrivacyResult.VOID),
-        PrivacyTarget("Lcom/discord/jank_stats/JankStatsModule;", "setScreenContext", listOf("Ljava/lang/String;", "Ljava/lang/String;"), "V", PrivacyResult.VOID),
-        PrivacyTarget("Lcom/discord/jank_stats/JankStatsModule;", "settleCurrentScreen", listOf(), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/JankStatsModule;", "setJankHeuristicMultiplier", listOf("D"), "V", PrivacyResult.VOID),
         // JankSessionManager stops when there are no pending sessions.
         PrivacyTarget("Lcom/discord/jank_stats/JankSessionModule;", "getPendingReports", listOf("Lcom/facebook/react/bridge/Promise;"), "V", PrivacyResult.PROMISE_EMPTY_ARRAY),
@@ -151,7 +148,7 @@ internal object PrivacyTargets {
         PrivacyTarget("Lcom/discord/jank_stats/JankSessionRecorder;", "recordFrame", listOf("Z", "J"), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/JankSessionRecorder;", "openSegment", listOf("Ljava/lang/String;", "Ljava/lang/String;"), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/JankSessionRecorder;", "openSegmentKeepingLabel", listOf("Ljava/lang/String;"), "V", PrivacyResult.VOID),
-        PrivacyTarget("Lcom/discord/jank_stats/JankSessionRecorder;", "renameOpenSegment", listOf("Ljava/lang/String;"), "V", PrivacyResult.VOID),
+        PrivacyTarget("Lcom/discord/jank_stats/JankSessionRecorder;", "nameOpenSegment", listOf("Ljava/lang/String;"), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/JankSessionRecorder;", "renameAndSettleOpenSegment", listOf("Ljava/lang/String;"), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/JankSessionRecorder;", "settleOpenSegment", listOf(), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/JankSessionRecorder;", "onTrackingDisabled", listOf(), "V", PrivacyResult.VOID),
@@ -160,9 +157,9 @@ internal object PrivacyTargets {
         PrivacyTarget("Lcom/discord/jank_stats/JankSessionRecorder;", "pendingRecords", listOf("Lkotlin/jvm/functions/Function1;"), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/JankSessionModule;", "hydrateLaunchId", listOf("Ljava/lang/String;"), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/JankSessionModule;", "ackReports", listOf("Lcom/facebook/react/bridge/ReadableArray;"), "V", PrivacyResult.VOID),
-        PrivacyTarget("Lcom/discord/jank_stats/JankScreenContext;", "beginTransition", listOf(), "V", PrivacyResult.VOID),
+        PrivacyTarget("Lcom/discord/jank_stats/JankScreenContext;", "beginScreenTransition", listOf(), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/JankScreenContext;", "nameCurrentScreen", listOf("Ljava/lang/String;", "Ljava/util/Set;"), "V", PrivacyResult.VOID),
-        PrivacyTarget("Lcom/discord/jank_stats/JankScreenContext;", "set", listOf("Ljava/lang/String;", "Ljava/lang/String;"), "V", PrivacyResult.VOID),
+        PrivacyTarget("Lcom/discord/jank_stats/JankScreenContext;", "setScreenContext", listOf("Ljava/lang/String;", "Ljava/lang/String;"), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/JankScreenContext;", "settleCurrentScreen", listOf(), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/JankScreenContext;", "onScreenBecameTopMost", listOf("Ljava/lang/String;"), "V", PrivacyResult.VOID),
         PrivacyTarget("Lcom/discord/jank_stats/JankScreenContext;", "onScreenDidAppear", listOf("Ljava/lang/String;"), "V", PrivacyResult.VOID),

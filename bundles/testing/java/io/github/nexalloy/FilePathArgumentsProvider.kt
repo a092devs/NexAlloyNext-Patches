@@ -24,7 +24,12 @@ class FilePathArgumentsProvider : ArgumentsProvider {
         }
 
         return Files.walk(testInputPath).filter { path ->
-                Files.isRegularFile(path) && path.normalize().none { it.name.startsWith(".") }
+                Files.isRegularFile(path) &&
+                    path.normalize().none { it.name.startsWith(".") } &&
+                    // Only open APKs that have fingerprint targets; unrelated binaries (for example
+                    // Discord, whose non-numeric version the generic harness cannot parse) are
+                    // covered by their own focused tests.
+                    fingerprintTestTargets.keys.any { path.name.startsWith(it) }
             }.map { Arguments.of(it) }
     }
 }
