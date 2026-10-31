@@ -4,5 +4,5 @@
 	branch = nexalloy
 [submodule "morphe-patches-library"]
 	path = morphe-patches-library
-	url = https://github.com/NexAlloy/morphe-patches-library
+	url = https://github.com/a092devs/morphe-patches-library
 	branch = nexalloy

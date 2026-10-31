@@ -7,6 +7,25 @@ falling back to generated commit notes when no section exists. Android CI
 validates changes; the dedicated release workflow builds and publishes release
 bundles after CI succeeds.
 
+## 3.5.10
+
+- `NexFusion` 3.5.10:
+  * Crunchyroll Support (`com.crunchyroll.crunchyroid`):
+    - Added `Enable Picture-in-Picture` patch: unlocks native PiP video player capability, registers action manager, adds seamless PiP entry on user leave hint, and connects contextual Skip Intro, Skip Credits, Skip Preview, and Skip Recap controls directly into PiP playback actions.
+    - Added `Remove from Continue Watching` patch: injects a "Remove" option into feed item overflow menus with dynamic label and constructor reflection across obfuscated builds, persists hidden playhead timestamps in preferences, and filters dismissed titles from the home feed.
+    - Added verified compatibility targets for Crunchyroll 3.126.0 and 3.117.0.
+  * YouTube Ambient Mode Resilience:
+    - Implemented recursive superclass field resolution (`findFieldRecursive`) for `CinematicContainerForceAnchors`, ensuring obfuscated proto hierarchy fields resolve reliably on YouTube 21.43+.
+    - Replaced hard failure logging with graceful silent fallback and background diagnostics, eliminating unhandled field lookup toasts.
+  * Facebook 585 Compatibility:
+    - Added target support for Facebook `585.0.0.47.54` with verified dynamic Redex and GraphQL query hooks.
+  * Gboard 18.5.6 Compatibility:
+    - Added target support for Gboard `18.5.6.993608717-release-arm64-v8a` supporting Google Sans Flex typography, proactive undo controls, and quick & magic emoji (Emojify).
+  * LinkedIn Universal Compatibility:
+    - Made LinkedIn target support universal across all releases (including `4.1.1267+`), aligning with the universal patch architecture of Google Photos, Gmail, and Google Discover.
+  * X (Twitter) 12.38.1 Compatibility:
+    - Added target support for X `12.38.1-prod.01` with verified media download and subscription check hooks.
+
 ## 3.5.9
 
 - `NexFusion` 3.5.9:
