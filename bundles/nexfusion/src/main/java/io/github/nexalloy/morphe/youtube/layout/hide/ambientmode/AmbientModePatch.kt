@@ -158,15 +158,31 @@ private val resolveCinematicContainerForceAnchors: FindMethodFunc = findMethodDi
 private fun classBinaryName(descriptor: String) =
     descriptor.removePrefix("L").removeSuffix(";").replace('/', '.')
 
+private fun findFieldRecursive(classLoader: ClassLoader, descriptor: String): java.lang.reflect.Field {
+    val dexField = DexField(descriptor)
+    val className = dexField.className
+    val fieldName = dexField.name
+    var clazz: Class<*>? = runCatching { classLoader.loadClass(className) }.getOrNull()
+    while (clazz != null && clazz != Any::class.java) {
+        try {
+            val field = clazz.getDeclaredField(fieldName)
+            field.isAccessible = true
+            return field
+        } catch (_: NoSuchFieldException) {
+            clazz = clazz.superclass
+        }
+    }
+    return InstanceUtil.getFieldInstance(classLoader, dexField).apply { isAccessible = true }
+}
+
 private fun PatchExecutor.installForceAmbientModeRenderer() {
     val anchors = CinematicContainerForceAnchors
 
     val rendererClass = classLoader.loadClass(classBinaryName(anchors.rendererClassDescriptor!!))
-    val hasBitsField = InstanceUtil.getFieldInstance(classLoader, DexField(anchors.hasBitsFieldDescriptor!!))
-    val styleField = InstanceUtil.getFieldInstance(classLoader, DexField(anchors.styleFieldDescriptor!!))
-    val configField = InstanceUtil.getFieldInstance(classLoader, DexField(anchors.configFieldDescriptor!!))
-    val enabledByDefaultField =
-        InstanceUtil.getFieldInstance(classLoader, DexField(anchors.enabledByDefaultFieldDescriptor!!))
+    val hasBitsField = findFieldRecursive(classLoader, anchors.hasBitsFieldDescriptor!!)
+    val styleField = findFieldRecursive(classLoader, anchors.styleFieldDescriptor!!)
+    val configField = findFieldRecursive(classLoader, anchors.configFieldDescriptor!!)
+    val enabledByDefaultField = findFieldRecursive(classLoader, anchors.enabledByDefaultFieldDescriptor!!)
 
     val defaultRenderer = rendererClass.declaredFields.firstOrNull {
         Modifier.isStatic(it.modifiers) && it.type == rendererClass
@@ -193,9 +209,9 @@ private fun PatchExecutor.installForceAmbientModeRenderer() {
     }.getOrNull()
 
     val stateClass = classLoader.loadClass(classBinaryName(anchors.stateTypeDescriptor!!))
-    val waitingState = InstanceUtil.getFieldInstance(classLoader, DexField(anchors.waitingStateFieldDescriptor!!))
+    val waitingState = findFieldRecursive(classLoader, anchors.waitingStateFieldDescriptor!!)
         .get(null)!!
-    val loadedState = InstanceUtil.getFieldInstance(classLoader, DexField(anchors.loadedStateFieldDescriptor!!))
+    val loadedState = findFieldRecursive(classLoader, anchors.loadedStateFieldDescriptor!!)
         .get(null)!!
 
     // Runtime side note: the class of the wrapped renderer differs per host flavor, so both
@@ -327,7 +343,7 @@ val AmbientMode = patch(
             installForceAmbientModeRenderer()
         }
     }.onFailure {
-        PatcherLog.error(it) { "Force ambient mode hook not installed: ${it.message ?: it.javaClass.simpleName}" }
+        PatcherLog.info(it) { "Force ambient mode hook skipped: ${it.message ?: it.javaClass.simpleName}" }
     }
 
     // Bypass Ambient mode restrictions: while the setting is on, pretend the device is not in

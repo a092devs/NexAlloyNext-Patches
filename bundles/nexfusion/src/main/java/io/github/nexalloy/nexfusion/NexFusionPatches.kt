@@ -9,6 +9,7 @@ import io.github.nexalloy.morphe.youtube.YouTubePatches
 import io.github.nexalloy.patches.ExtensionContextHook
 import io.github.nexalloy.patches.MorpheTargets
 import io.github.nexalloy.revanced.googlephotos.GooglePhotosPatches
+import io.github.nexalloy.nexfusion.crunchyroll.CrunchyrollPatches
 import io.github.nexalloy.nexfusion.discord.DiscordPatches
 import io.github.nexalloy.nexfusion.facebook.FacebookPatches
 import io.github.nexalloy.nexfusion.gboard.GboardPatches
@@ -38,6 +39,16 @@ object NexFusionPatches : PatchBundle {
         morpheApp("YT Music", "com.google.android.apps.youtube.music", YTMusicPatches, MorpheTargets.MUSIC, 0xFF0000),
         morpheApp("Google Photos", "com.google.android.apps.photos", GooglePhotosPatches, appIconColor = 0x4285F4),
         AppPatchInfo(
+            appName = "Crunchyroll",
+            packageName = "com.crunchyroll.crunchyroid",
+            patches = CrunchyrollPatches,
+            targets = listOf(
+                AppTarget("3.126.0"),
+                AppTarget("3.117.0"),
+            ),
+            appIconColor = 0xFF5C00,
+        ),
+        AppPatchInfo(
             appName = "Discord",
             packageName = "com.discord",
             patches = DiscordPatches,
@@ -57,6 +68,7 @@ object NexFusionPatches : PatchBundle {
             packageName = "com.facebook.katana",
             patches = FacebookPatches,
             targets = listOf(
+                AppTarget("585.0.0.47.54"),
                 AppTarget("584.0.0.51.56"),
                 AppTarget("583.0.0.39.55"),
                 AppTarget("582.0.0.50.54"),
@@ -84,6 +96,7 @@ object NexFusionPatches : PatchBundle {
             packageName = "com.google.android.inputmethod.latin",
             patches = GboardPatches,
             targets = listOf(
+                AppTarget("18.5.6.993608717-release-arm64-v8a"),
                 AppTarget("18.5.4.993608717-release-arm64-v8a"),
                 AppTarget("18.5.3.993608717-release-arm64-v8a"),
                 AppTarget("18.4.1.985164140-release-arm64-v8a"),
@@ -108,14 +121,6 @@ object NexFusionPatches : PatchBundle {
             appName = "LinkedIn",
             packageName = "com.linkedin.android",
             patches = LinkedInPatches,
-            targets = listOf(
-                AppTarget("4.1.1266"),
-                AppTarget("4.1.1264"),
-                AppTarget("4.1.1263"),
-                AppTarget("4.1.1261"),
-                AppTarget("4.1.1259"),
-                AppTarget("4.1.1255.1"),
-            ),
             appIconColor = 0x0A66C2,
         ),
         AppPatchInfo(
@@ -165,6 +170,7 @@ object NexFusionPatches : PatchBundle {
             packageName = "com.twitter.android",
             patches = TwitterPatches,
             targets = listOf(
+                AppTarget("12.38.1-prod.01"),
                 AppTarget("12.38.0-prod.01"),
                 AppTarget("12.37.2-prod.01"),
                 AppTarget("12.36.1-prod.01"),
